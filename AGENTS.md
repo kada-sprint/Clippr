@@ -100,18 +100,22 @@ backend/
 
 | Anggota | Frontend | Backend |
 | --- | --- | --- |
-| A | `auth`, `projects` | Autentikasi, metadata proyek, model pengguna/proyek, koordinasi database |
-| B | `ingestion` | Upload, validasi media, ekstraksi audio, ASR, kamus istilah, progres ingest/transkripsi |
-| C | `clips` | Kurasi LLM, klip, layout FFmpeg, subtitle, editor, render ulang, ekspor |
+| A | `auth`, `projects`: Google Sign-In, halaman login, dashboard proyek | Verifikasi token Google, CRUD metadata proyek, schema Users/Projects/Clips melalui Prisma, koordinasi database, cron-job pembersihan dan retensi |
+| B | `ingestion`: form upload, kamus istilah, pilihan layout, progres seluruh tahapan pipeline | API upload, validasi media, ekstraksi audio, ASR dengan timestamp per kata, kamus istilah |
+| C | `clips`: kartu hasil kurasi, preview, editor waktu/subtitle, tombol ekspor | Kurasi LLM, klip, layout FFmpeg, subtitle, API render ulang per klip, ekspor MP4/SRT, koordinasi fondasi BullMQ/Redis dan worker bersama |
 
-- Pembagian ini menjadi batas koordinasi yang disepakati untuk repo; pekerjaan lintas batas harus dibahas dengan pemilik fitur.
+- Kepemilikan pekerjaan mengikuti Bab 3 FRD dan tabel di atas, dari frontend sampai backend. Jika penugasan pada jadwal Bab 7 berbeda, gunakan Bab 3 sebagai acuan pemilik; jadwal tidak otomatis memindahkan tanggung jawab.
+- Bantuan lintas anggota harus disepakati dengan pemilik fitur dan mencantumkan lingkup serta file yang dikerjakan. Bedakan pemilik utama dengan anggota pendukung; jangan mengimplementasikan bagian yang sama secara paralel tanpa koordinasi.
 - Setiap anggota menggunakan checkout atau worktree sendiri. Jangan berganti branch di direktori yang sedang digunakan anggota lain.
 - Gunakan branch fitur `feat/<fitur>` untuk pekerjaan tim dan PR ke `dev` untuk integrasi. Agen tetap menggunakan branch aktif kecuali diminta membuat atau berpindah branch.
 - Sebelum pekerjaan paralel, catat pemilik, lingkup, dependensi, dan file bersama pada issue atau draft PR. Agen tidak mengirim pesan atau memublikasikan update eksternal tanpa otorisasi.
 - Jangan mengedit modul milik anggota lain tanpa koordinasi, menimpa perubahan lokal orang lain, atau melakukan refactor lintas fitur di dalam PR fitur.
 - A mengoordinasikan file bersama: `App.jsx`, `main.jsx`, `app.js`, `server.js`, konfigurasi (termasuk `src/config/prisma.js` dan konfigurasi tooling Prisma), schema Prisma, manifest dependency, lockfile, dan migrasi. Koordinator mengatur urutan perubahan; anggota lain tetap dapat mengusulkan patch melalui PR.
 - B dan C menyepakati payload serta urutan pipeline sebelum mengubah queue/worker bersama. A mengoordinasikan integrasinya dengan status proyek dan database.
-- Sepakati penanggung jawab retensi lintas proyek/media sebelum implementasinya; jangan membuat dua scheduler pembersihan independen.
+- B memiliki implementasi tahap ingest/transkripsi; C memiliki tahap kurasi/render dan render ulang. UI progres milik B menampilkan status dari seluruh tahap tersebut menggunakan kontrak status bersama.
+- C mengoordinasikan fondasi BullMQ/Redis dan entry point worker bersama pada H-02 sesuai FRD. B mengimplementasikan job ingest/ekstraksi audio/transkripsi; C mengimplementasikan kurasi/render/render ulang. A mengoordinasikan persistensi status dan schema. Sepakati payload serta status pada H-01; fondasi harus tersedia sebelum integrasi pipeline.
+- Targetkan integrasi lengkap termasuk editor, render ulang per klip, dan ekspor pada H-07 sebelum user testing H-08. H-08 digunakan untuk pengujian dan perbaikan, bukan setup awal queue/worker.
+- A bertanggung jawab atas cron-job pembersihan berkas dan retensi sesuai Bab 3 FRD. B dan C menyediakan kebutuhan lokasi media serta aktivitas pemrosesan/penyuntingan yang relevan; jangan membuat scheduler pembersihan terpisah per fitur.
 - Struktur folder tidak menggantikan review: setiap PR integrasi memerlukan review minimal satu anggota lain.
 
 ## Kontrak integrasi dan database bersama
@@ -135,6 +139,7 @@ backend/
 - Validasi media di server, bukan hanya dari ekstensi/nama yang dikirim browser.
 - Ikuti retensi FRD: video sumber dihapus setelah 7 hari tanpa aktivitas penyuntingan; hasil ekspor dihapus setelah 3 hari; metadata dan transkrip tetap disimpan. Render ulang setelah sumber hilang meminta upload ulang sumber asli.
 - Kebijakan retensi adalah fitur aplikasi yang diuji dan dibatasi pada media terkelola, bukan izin untuk menjalankan perintah penghapusan massal saat pengembangan.
+- Ikuti aturan persistensi retensi pada Bab 4 FRD: upload sumber dan penyimpanan edit memperbarui masa retensi sumber, polling/unduhan tidak; render berhasil menetapkan kedaluwarsa ekspor. Simpan transkrip sumber lengkap, tahap proses, waktu aktivitas edit, dan waktu kedaluwarsa. Setelah pembersihan, kosongkan path media terkait tanpa menghapus metadata; tunda pembersihan media yang dipakai job aktif.
 - Jangan menyatakan fitur selesai dengan data mock. Integrasi AI yang belum memiliki provider/kredensial harus dinyatakan belum terverifikasi.
 
 ## Git dan keselamatan perubahan
