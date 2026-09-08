@@ -1,0 +1,24 @@
+{
+  "name": "cuplik-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend H-01 Cuplik",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "test": "node --test",
+    "db:validate": "prisma validate",
+    "db:generate": "prisma generate",
+    "db:check": "node scripts/check-database.js",
+    "google:check": "node scripts/check-google.js"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "google-auth-library": "^10.5.0"
+  },
+  "devDependencies": { "prisma": "6.19.3" }
+}

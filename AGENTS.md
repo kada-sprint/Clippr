@@ -12,7 +12,7 @@
 ## Sumber kebutuhan dan stack
 
 - Baca `docs/cuplik-cliper-prd.md` dan `docs/frd-cuplik.md` sebelum mengerjakan fitur terkait.
-- FRD v2 menjadi acuan untuk pembaruan eksplisit atas PRD, termasuk autentikasi, persistensi proyek, dan retensi. Klarifikasi konflik lain; jangan mengarang kebutuhan dari bagian dokumen yang terpotong.
+- FRD v2 menjadi acuan untuk pembaruan eksplisit atas PRD, termasuk autentikasi dan persistensi proyek. Retensi mengikuti keputusan terbaru yang diselaraskan pada PRD/FRD: sumber 24 jam sejak upload berhasil, ekspor 24 jam sejak render berhasil. Klarifikasi konflik lain; jangan mengarang kebutuhan dari bagian dokumen yang terpotong.
 - Frontend: React dengan Vite, menggunakan JavaScript dan JSX.
 - Backend: Express dan Node.js, menggunakan JavaScript. Jangan menambahkan TypeScript atau layanan Python tanpa keputusan tim.
 - Database: PostgreSQL di Aiven dengan Prisma sebagai ORM. Kode backend tetap menggunakan JavaScript.
@@ -134,12 +134,13 @@ backend/
 
 - MVP: login Google, proyek persisten, satu upload MP4/MOV maksimal 45 menit dan 1 GB, maksimal 20 istilah kustom, ASR timestamp per kata, kurasi 3–5 klip berdurasi 25–75 detik, tiga layout 9:16, dua gaya subtitle, editor ringan, serta ekspor MP4 1080×1920 dan SRT.
 - Editor mendukung penyesuaian batas waktu per 0,5 detik, koreksi judul/subtitle, dan render ulang hanya klip yang berubah.
+- Simpan gaya subtitle per klip melalui `subtitleStyle` (`clean` atau `active_word_highlight`, default `clean`). Backend wajib memvalidasi maksimal 20 istilah, transkrip per kata dengan `word`, `start_time`, `end_time`, `confidence`, 3–5 hasil kurasi berdurasi 25–75 detik, serta pilihan layout/subtitle yang didukung. Schema saja bukan bukti validasi pipeline sudah diimplementasikan.
 - Jangan menambahkan tracking pembicara dinamis, posting media sosial, batch upload, timeline multi-track, B-roll, pembayaran, atau workspace kolaboratif pengguna aplikasi ke MVP.
 - Verifikasi kepemilikan proyek dan klip pada setiap akses, perubahan, preview, dan unduhan. Jangan membuka folder media privat sebagai direktori publik tanpa kontrol akses.
 - Validasi media di server, bukan hanya dari ekstensi/nama yang dikirim browser.
-- Ikuti retensi FRD: video sumber dihapus setelah 7 hari tanpa aktivitas penyuntingan; hasil ekspor dihapus setelah 3 hari; metadata dan transkrip tetap disimpan. Render ulang setelah sumber hilang meminta upload ulang sumber asli.
+- Video sumber kedaluwarsa 24 jam setelah upload/upload ulang berhasil; ekspor MP4/SRT kedaluwarsa 24 jam setelah render berhasil. Metadata dan transkrip tetap disimpan. Render ulang setelah sumber hilang meminta upload ulang sumber asli.
 - Kebijakan retensi adalah fitur aplikasi yang diuji dan dibatasi pada media terkelola, bukan izin untuk menjalankan perintah penghapusan massal saat pengembangan.
-- Ikuti aturan persistensi retensi pada Bab 4 FRD: upload sumber dan penyimpanan edit memperbarui masa retensi sumber, polling/unduhan tidak; render berhasil menetapkan kedaluwarsa ekspor. Simpan transkrip sumber lengkap, tahap proses, waktu aktivitas edit, dan waktu kedaluwarsa. Setelah pembersihan, kosongkan path media terkait tanpa menghapus metadata; tunda pembersihan media yang dipakai job aktif.
+- Ikuti aturan persistensi retensi pada Bab 4 FRD: upload/upload ulang berhasil menetapkan masa retensi sumber; penyimpanan edit hanya memperbarui aktivitas edit, tidak memperpanjang retensi. Polling/unduhan tidak memperpanjang retensi; render berhasil menetapkan kedaluwarsa ekspor klip tersebut. Simpan transkrip sumber lengkap, tahap proses, waktu aktivitas edit, dan waktu kedaluwarsa. Setelah pembersihan, kosongkan path media terkait tanpa menghapus metadata; tunda pembersihan media yang dipakai job aktif. Scheduler retensi dan validasi pipeline merupakan pekerjaan tahap berikutnya, belum diimplementasikan oleh setup schema H-01.
 - Jangan menyatakan fitur selesai dengan data mock. Integrasi AI yang belum memiliki provider/kredensial harus dinyatakan belum terverifikasi.
 
 ## Git dan keselamatan perubahan

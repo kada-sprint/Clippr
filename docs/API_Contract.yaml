@@ -1,0 +1,143 @@
+openapi: 3.0.3
+info:
+  title: Cuplik API — H-01
+  version: 0.1.0
+  description: >-
+    Draft untuk review A/B/C. Hanya health dan verifikasi awal Google yang diimplementasikan.
+    Respons Google belum menerbitkan sesi atau memberi akses ke proyek/klip.
+servers:
+  - url: http://localhost:3000/api
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Status proses HTTP; bukan readiness database
+      responses:
+        '200':
+          description: API berjalan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok] }
+  /auth/google:
+    post:
+      operationId: verifyGoogle
+      summary: Verifikasi ID token dan upsert profil berdasarkan Google subject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential]
+              properties:
+                credential: { type: string, minLength: 1, maxLength: 16384 }
+      responses:
+        '200':
+          description: Identitas diverifikasi dan disimpan; belum ada sesi aplikasi
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user:
+                    type: object
+                    required: [id, email, displayName, avatarUrl]
+                    properties:
+                      id: { type: string, description: Google subject }
+                      email: { type: string, format: email }
+                      displayName: { type: string }
+                      avatarUrl: { type: string, nullable: true }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: INVALID_GOOGLE_TOKEN
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '413':
+          description: PAYLOAD_TOO_LARGE (JSON body melebihi 20kb)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: GOOGLE_NOT_CONFIGURED, GOOGLE_UNAVAILABLE, DATABASE_NOT_CONFIGURED, DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  schemas:
+    SubtitleStyle:
+      type: string
+      enum: [clean, active_word_highlight]
+      default: clean
+      description: Gaya subtitle tersimpan per klip; kontrak endpoint klip masih draft.
+    ClipSubtitleUpdate:
+      type: object
+      description: >-
+        Bagian payload draft PATCH klip untuk gaya subtitle. Field boleh tidak dikirim
+        saat edit field lain; jika tidak dikirim, pertahankan nilai tersimpan.
+        Default clean berlaku saat klip dibuat, bukan untuk mereset edit parsial.
+      properties:
+        subtitleStyle:
+          $ref: '#/components/schemas/SubtitleStyle'
+    ClipSubtitleFields:
+      type: object
+      description: Bagian respons klip; harus digabung dengan field klip lainnya sebelum implementasi endpoint.
+      required: [subtitleStyle]
+      properties:
+        subtitleStyle:
+          $ref: '#/components/schemas/SubtitleStyle'
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+  responses:
+    BadRequest:
+      description: INVALID_CREDENTIAL atau INVALID_JSON
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+x-future-endpoints:
+  description: Draft berikut belum diimplementasikan; detail request/response wajib disepakati pemilik sebelum integrasi.
+  authentication: Sesi aplikasi cookie HttpOnly direncanakan H-03; semua resource privat wajib memeriksa pemilik di backend.
+  validation: >-
+    Belum diimplementasikan pada pipeline H-01: maksimal 20 istilah; transkrip per kata
+    dengan word, start_time, end_time, confidence; hasil kurasi 3–5 klip masing-masing
+    25–75 detik; layout/subtitle hanya nilai yang didukung. Nilai subtitleStyle dibatasi
+    oleh SubtitleStyle; default clean saat pembuatan klip.
+  retention: >-
+    Belum diimplementasikan: sumber kedaluwarsa 24 jam setelah upload/upload ulang berhasil;
+    MP4/SRT 24 jam setelah render berhasil. Edit hanya mencatat aktivitas; edit, polling,
+    dan unduhan tidak memperpanjang retensi. Pertahankan metadata/transkrip, kosongkan path
+    setelah pembersihan, tunda media job aktif, dan minta upload ulang jika sumber hilang.
+  clip-contract:
+    status: draft
+    update-fields:
+      $ref: '#/components/schemas/ClipSubtitleUpdate'
+    response-fields:
+      $ref: '#/components/schemas/ClipSubtitleFields'
+  endpoints:
+    - { owner: A, method: GET, path: /auth/me, purpose: Profil sesi aktif }
+    - { owner: A, method: POST, path: /auth/logout, purpose: Akhiri sesi }
+    - { owner: A, method: GET, path: /projects, purpose: Daftar proyek pengguna }
+    - { owner: A, method: POST, path: /projects, purpose: Buat metadata proyek }
+    - { owner: A, method: GET, path: '/projects/{id}', purpose: Detail dan status untuk polling }
+    - { owner: A, method: PATCH, path: '/projects/{id}', purpose: Edit metadata }
+    - { owner: A, method: DELETE, path: '/projects/{id}', purpose: Hapus proyek dengan pemeriksaan job aktif }
+    - { owner: B, method: POST, path: '/projects/{id}/source', purpose: Upload atau upload ulang sumber asli }
+    - { owner: C, method: GET, path: '/projects/{id}/clips', purpose: Hasil kurasi }
+    - { owner: C, method: PATCH, path: '/clips/{id}', purpose: Simpan edit klip }
+    - { owner: C, method: POST, path: '/clips/{id}/render', purpose: Render ulang satu klip }
+    - { owner: C, method: GET, path: '/clips/{id}/preview', purpose: Preview privat }
+    - { owner: C, method: GET, path: '/clips/{id}/exports/{format}', purpose: Unduh MP4 atau SRT privat }

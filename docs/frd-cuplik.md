@@ -143,6 +143,7 @@ Untuk mendukung kebutuhan login dan penyimpanan proyek draf video secara persist
 <td>• id (PK - UUID)<br />
 • project_id (FK -&gt; projects.id)<br />
 • title (VARCHAR)<br />
+• subtitle_style (ENUM SubtitleStyle: clean/active_word_highlight; NOT NULL, default clean)<br />
 • start_time (DECIMAL)<br />
 • end_time (DECIMAL)<br />
 • transcript_json (JSONB - Word Level)<br />
@@ -158,9 +159,11 @@ Untuk mendukung kebutuhan login dan penyimpanan proyek draf video secara persist
 </tbody>
 </table>
 
-**Aturan persistensi:** saat upload sumber berhasil, `last_edit_activity_at` diisi waktu upload dan `source_expires_at` ditetapkan 7 hari kemudian. Penyimpanan edit judul, subtitle, atau batas klip memperbarui kedua waktu tersebut; polling dan unduhan tidak memperpanjang retensi. Upload ulang sumber asli memperbarui masa retensi sumber. Render yang berhasil menetapkan `rendered_at` dan `export_expires_at` 3 hari kemudian untuk MP4/SRT klip tersebut. Setelah berkas kedaluwarsa dihapus, path terkait menjadi null; metadata dan transkrip tetap tersimpan. Jangan menghapus media yang sedang dipakai job aktif; lakukan pembersihan setelah job selesai.
+**Aturan persistensi:** saat upload/upload ulang sumber asli berhasil, `last_edit_activity_at` diisi waktu upload dan `source_expires_at` ditetapkan 24 jam kemudian. Penyimpanan edit judul, subtitle, gaya subtitle, atau batas klip hanya memperbarui `last_edit_activity_at`, tidak memperpanjang `source_expires_at`. Polling dan unduhan tidak memperpanjang retensi. Render yang berhasil menetapkan `rendered_at` dan `export_expires_at` 24 jam kemudian untuk MP4/SRT klip tersebut. Setelah berkas kedaluwarsa dihapus, path terkait menjadi null; metadata dan transkrip tetap tersimpan. Jangan menghapus media yang sedang dipakai job aktif; lakukan pembersihan setelah job selesai.
 
-Schema ini merupakan baseline kebutuhan, bukan migrasi yang sudah diterapkan. A mengoordinasikan perubahan schema dan review migrasi; setiap anggota menggunakan database/schema pengembangan terisolasi. Migrasi pada database bersama memerlukan persetujuan eksplisit tim.
+**Gaya subtitle dan validasi backend:** `Clip.subtitleStyle` dipetakan ke `subtitle_style` dengan nilai `clean` atau `active_word_highlight`, default `clean`. Worker memakai pilihan tersimpan saat render/render ulang. Backend wajib memvalidasi maksimal 20 istilah kustom, struktur transkrip per kata (`word`, `start_time`, `end_time`, `confidence`), 3–5 hasil kurasi masing-masing 25–75 detik, dan pilihan layout/subtitle yang didukung. Scheduler retensi serta validasi pipeline ini merupakan kebutuhan tahap berikutnya, belum diimplementasikan oleh setup schema H-01.
+
+Schema ini merupakan baseline kebutuhan. Migrasi awal dan tambahan gaya subtitle telah diterapkan ke Aiven bersama setelah persetujuan tim; bukti deployment dicatat pada README backend. A mengoordinasikan perubahan schema dan review migrasi; setiap anggota menggunakan database/schema pengembangan terisolasi. Migrasi berikutnya pada database bersama tetap memerlukan persetujuan eksplisit tim; migrasi yang sudah diterapkan tidak boleh diedit.
 
 # 5. Persyaratan Non-Fungsional (NFR) & Kebijakan Data
 
@@ -168,7 +171,7 @@ Schema ini merupakan baseline kebutuhan, bukan migrasi yang sudah diterapkan. A 
 
 **NFR-2: Queue Isolation & Reliability.** Video rendering dan tugas berat FFmpeg wajib berjalan di background worker terisolasi (BullMQ + Redis dengan worker Node.js pada VPS) dan dilarang keras berjalan di thread server web utama atau fungsi serverless berbasis timeout.
 
-**NFR-3: Kebijakan Retensi Berjenjang (Pembaruan v2.0).** Mengingat keterbatasan penyimpanan VPS, berkas video mentah berukuran besar (.mp4/.mov) akan dihapus otomatis secara permanen jika tidak ada aktivitas penyuntingan dalam waktu 7 hari kalender. File ekspor klip vertikal hasil render dihapus dalam 3 hari. Namun, seluruh entri database (skema draf, transkrip JSON, judul kustom, metadata edit) akan disimpan secara permanen. Jika pengguna ingin merender ulang klip setelah 7 hari, sistem akan meminta pengguna mengunggah kembali video sumber asli ke proyek bersangkutan.
+**NFR-3: Kebijakan Retensi 24 Jam (Penyesuaian PRD).** Video sumber (.mp4/.mov) kedaluwarsa 24 jam setelah upload/upload ulang berhasil; ekspor MP4/SRT kedaluwarsa 24 jam setelah render berhasil. Edit, polling, dan unduhan tidak memperpanjang masa retensi. Pembersihan menunda media yang dipakai job aktif sampai job selesai, menghapus berkas kedaluwarsa, dan mengosongkan path tanpa menghapus metadata atau transkrip. Jika sumber sudah hilang, render ulang meminta upload ulang sumber asli ke proyek bersangkutan. Aturan ini menggantikan kebijakan retensi sebelumnya.
 
 **NFR-4: UI Responsiveness.** Antarmuka frontend wajib memperbarui status pemrosesan (Ingest -\> Transcribe -\> Analyze -\> Render) secara asinkron dengan visual update real-time via long-polling interval 5 detik atau koneksi WebSocket.
 

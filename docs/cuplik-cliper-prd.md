@@ -128,6 +128,7 @@ Alih-alih *speaker tracking per frame*, Cuplik menggunakan pendekatan template l
 *   **REQ-5.2 Gaya Tampilan:**
     *   *Clean Style:* Teks putih, font sans-serif tebal (Inter/Montserrat), outline hitam.
     *   *Active Word Highlight Style:* Teks kuning menyala pada kata yang sedang diucapkan, warna abu-abu pada kata lainnya.
+    *   Pilihan disimpan per klip sebagai `subtitleStyle`: `clean` (default) atau `active_word_highlight`, dan digunakan kembali saat render ulang.
 
 ### 6.6 Modul 6: Lightweight Web Review Editor (P0)
 *   **REQ-6.1 Nudge Adjustment:** Antarmuka penggeser titik mulai (*start*) dan akhir (*end*) dengan *granularity* 0.5 detik tanpa timeline multi-layer.
@@ -154,7 +155,7 @@ Alih-alih *speaker tracking per frame*, Cuplik menggunakan pendekatan template l
 ## 8. Non-Functional Requirements (NFR)
 *   **NFR-1 (Processing Latency):** Total waktu pemrosesan untuk video 45 menit tidak boleh melebihi 1/3 durasi aslinya (< 15 menit).
 *   **NFR-2 (Reliability & Queue Isolation):** Video rendering wajib berjalan di background worker terisolasi (misal: Redis Queue + Celery/BullMQ pada VPS) dan tidak boleh dijalankan di thread web-server utama atau fungsi serverless berbasis timeout (< 15 menit).
-*   **NFR-3 (Data Privacy & Storage Retention):** Berkas video mentah dan hasil render klip dihapus otomatis dari media penyimpanan sementara dalam kurun waktu 24 jam demi efisiensi storage dan perlindungan privasi materi pelatihan klien.
+*   **NFR-3 (Data Privacy & Storage Retention):** Video sumber kedaluwarsa 24 jam setelah upload/upload ulang berhasil. Hasil ekspor MP4/SRT kedaluwarsa 24 jam setelah render klip berhasil. Penyimpanan edit tetap mencatat aktivitas, tetapi edit, polling, dan unduhan tidak memperpanjang masa retensi sumber maupun ekspor. Pembersihan menghapus berkas kedaluwarsa dan mengosongkan path terkait tanpa menghapus metadata atau transkrip; media yang dipakai job aktif ditunda pembersihannya sampai job selesai. Render ulang setelah sumber hilang membutuhkan upload ulang sumber asli.
 *   **NFR-4 (UI Responsiveness):** Antarmuka status proses wajib memperbarui status tahapan (*Ingest*, *Transcribe*, *Analyze*, *Render*) secara real-time via WebSocket atau long-polling interval 5 detik.
 
 ---
