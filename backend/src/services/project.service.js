@@ -1,5 +1,10 @@
 const AppError = require('../utils/app-error');
-const { createProject: defaultCreateProject, findUserById: defaultFindUserById } = require('../models/project.model');
+const {
+  createProject: defaultCreateProject,
+  updateProjectAudio: defaultUpdateProjectAudio,
+  findUserById: defaultFindUserById,
+} = require('../models/project.model');
+const { extractAudio: defaultExtractAudio } = require('../utils/ffmpeg');
 const { removeUploadedFile } = require('../middlewares/upload.middleware');
 
 const ALLOWED_LAYOUTS = Object.freeze(['SLIDE_CAM', 'TALKING_HEAD', 'SLIDE_ONLY']);
@@ -46,11 +51,14 @@ function validateLayout(layout) {
  */
 function createProjectService({
   createProject = defaultCreateProject,
+  updateProjectAudio = defaultUpdateProjectAudio,
   findUserById = defaultFindUserById,
+  extractAudio = defaultExtractAudio,
 } = {}) {
   return {
     async handleVideoUpload({ file, selectedLayout, customVocabulary, userId }) {
-      // Jika terjadi error selama validasi atau penyimpanan data, file harus dihapus dari disk
+      let audioPath = null;
+
       try {
         if (!file || !file.path) {
           throw new AppError(400, 'FILE_REQUIRED', 'File video wajib diunggah.');
@@ -74,7 +82,6 @@ function createProjectService({
         }
 
         // 5. Simpan record proyek ke database dengan status awal 'INGESTED'
-        // Path dinormalisasi agar konsisten di semua sistem operasi
         const normalizedVideoPath = file.path.replaceAll('\\', '/');
 
         const project = await createProject({
@@ -85,11 +92,27 @@ function createProjectService({
           status: 'INGESTED',
         });
 
-        return project;
+        // 6. Ekstraksi audio dari file video menggunakan FFmpeg (WAV 16kHz Mono)
+        audioPath = await extractAudio(file.path);
+
+        // 7. Update status di Prisma menjadi 'AUDIO_EXTRACTED' serta simpan path audio
+        const updatedProject = await updateProjectAudio({
+          id: project.id,
+          audioPath,
+          status: 'AUDIO_EXTRACTED',
+        });
+
+        return {
+          ...updatedProject,
+          audioPath,
+        };
       } catch (error) {
         // Hapus file fisik temporer jika terjadi kegagalan agar tidak meninggalkan file sampah di disk
         if (file?.path) {
           await removeUploadedFile(file.path);
+        }
+        if (audioPath) {
+          await removeUploadedFile(audioPath);
         }
         throw error;
       }

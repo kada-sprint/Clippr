@@ -20,7 +20,7 @@ function createProjectController({
         });
 
         res.status(201).json({
-          message: 'Video berhasil diunggah dan proyek berhasil dibuat.',
+          message: 'Video berhasil diunggah dan audio berhasil diekstrak.',
           project,
         });
       } catch (error) {
