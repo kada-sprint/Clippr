@@ -25,8 +25,8 @@ Word-level JSON output from the ASR pipeline. Each word carries a text token, st
 _Avoid_: Transcript JSON, word-level data
 
 **Concept Score**:
-The integer value (0–100) assigned to a clip by the scoring rubric. Stored as `concept_score` in the `clips` database table.
-_Aavoid_: Score, rating, completeness score
+The raw integer score (0–98) assigned by the LLM scoring rubric, before normalization. Normalized to 0.0–1.0 at storage time in the service layer. Stored as `concept_score` in the `clips` database table.
+_Avoid_: Score, rating, completeness score
 
 **Clip**:
 A vertical video segment (9:16) extracted from a webinar, scored for concept completeness, and ready for export as MP4 + SRT.
