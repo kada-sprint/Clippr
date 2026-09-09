@@ -2,9 +2,11 @@ const AppError = require('../utils/app-error');
 const {
   createProject: defaultCreateProject,
   updateProjectAudio: defaultUpdateProjectAudio,
+  updateProjectTranscript: defaultUpdateProjectTranscript,
   findUserById: defaultFindUserById,
 } = require('../models/project.model');
 const { extractAudio: defaultExtractAudio } = require('../utils/ffmpeg');
+const { transcribeAudio: defaultTranscribeAudio } = require('./stt.service');
 const { removeUploadedFile } = require('../middlewares/upload.middleware');
 
 const ALLOWED_LAYOUTS = Object.freeze(['SLIDE_CAM', 'TALKING_HEAD', 'SLIDE_ONLY']);
@@ -52,8 +54,10 @@ function validateLayout(layout) {
 function createProjectService({
   createProject = defaultCreateProject,
   updateProjectAudio = defaultUpdateProjectAudio,
+  updateProjectTranscript = defaultUpdateProjectTranscript,
   findUserById = defaultFindUserById,
   extractAudio = defaultExtractAudio,
+  transcribeAudio = defaultTranscribeAudio,
 } = {}) {
   return {
     async handleVideoUpload({ file, selectedLayout, customVocabulary, userId }) {
@@ -96,14 +100,24 @@ function createProjectService({
         audioPath = await extractAudio(file.path);
 
         // 7. Update status di Prisma menjadi 'AUDIO_EXTRACTED' serta simpan path audio
-        const updatedProject = await updateProjectAudio({
+        await updateProjectAudio({
           id: project.id,
           audioPath,
           status: 'AUDIO_EXTRACTED',
         });
 
+        // 8. Transkripsi audio menggunakan STT (Elice / OpenAI Whisper) dengan Word-Level Timestamps
+        const transcriptJson = await transcribeAudio(audioPath, formattedVocabulary);
+
+        // 9. Simpan hasil transkrip ke DB dan perbarui status menjadi 'TRANSCRIBED'
+        const finalProject = await updateProjectTranscript({
+          id: project.id,
+          transcriptJson,
+          status: 'TRANSCRIBED',
+        });
+
         return {
-          ...updatedProject,
+          ...finalProject,
           audioPath,
         };
       } catch (error) {

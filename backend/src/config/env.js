@@ -7,4 +7,7 @@ module.exports = {
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   sessionSecret: process.env.SESSION_SECRET || '',
   production: process.env.NODE_ENV === 'production',
+  eliceApiKey: process.env.ELICE_API_KEY || process.env.OPENAI_API_KEY || '',
+  eliceApiBaseUrl: process.env.ELICE_API_BASE_URL || process.env.OPENAI_BASE_URL || '',
+  sttModel: process.env.STT_MODEL || 'whisper-large-v3',
 };

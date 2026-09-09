@@ -82,6 +82,39 @@ async function updateProjectAudio({ id, audioPath, status = 'AUDIO_EXTRACTED' })
 }
 
 /**
+ * Memperbarui hasil transkrip audio dan status proyek menjadi 'TRANSCRIBED'
+ * @param {Object} params
+ * @param {string} params.id - UUID proyek
+ * @param {Object} params.transcriptJson - JSON transkripsi dengan word-level timestamps
+ * @param {string} [params.status='TRANSCRIBED'] - Status baru proyek
+ */
+async function updateProjectTranscript({ id, transcriptJson, status = 'TRANSCRIBED' }) {
+  const prisma = getPrisma();
+  return prisma.project.update({
+    where: { id },
+    data: {
+      status,
+      processingStage: 'transcribe',
+      transcriptJson,
+      lastEditActivityAt: new Date(),
+    },
+    select: {
+      id: true,
+      userId: true,
+      sourceVideoPath: true,
+      selectedLayout: true,
+      customVocabulary: true,
+      status: true,
+      processingStage: true,
+      transcriptJson: true,
+      lastEditActivityAt: true,
+      sourceExpiresAt: true,
+      createdAt: true,
+    },
+  });
+}
+
+/**
  * Mencari proyek berdasarkan ID
  * @param {string} id - UUID proyek
  */
@@ -105,6 +138,7 @@ async function findUserById(userId) {
 module.exports = {
   createProject,
   updateProjectAudio,
+  updateProjectTranscript,
   findProjectById,
   findUserById,
 };
