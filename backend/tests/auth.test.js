@@ -10,7 +10,7 @@ const identity = {
 };
 
 async function serve(t, authenticateGoogle) {
-  const server = createApp({ authenticateGoogle }).listen(0, '127.0.0.1');
+  const server = createApp({ authenticateGoogle, sessionSecret: 'test-session-secret-that-is-at-least-32-characters', production: false }).listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   t.after(() => new Promise((resolve, reject) => {
     server.close((error) => error ? reject(error) : resolve());
@@ -21,7 +21,7 @@ async function serve(t, authenticateGoogle) {
 
 function post(url, body) {
   return fetch(`${url}/api/auth/google`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:5173' }, body: JSON.stringify(body),
   });
 }
 
@@ -66,7 +66,8 @@ test('only the verified Google identity is passed to persistence', async (t) => 
   assert.equal(response.status, 200);
   assert.equal((await response.json()).user.id, identity.sub);
   assert.equal(response.headers.get('cache-control'), 'no-store');
-  assert.equal(response.headers.get('set-cookie'), null);
+  assert.match(response.headers.get('set-cookie'), /clippr_session=/);
+  assert.match(response.headers.get('set-cookie'), /httponly/i);
 });
 
 test('invalid tokens cannot reach persistence', async (t) => {

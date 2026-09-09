@@ -14,7 +14,7 @@ npm run db:generate
 npm run dev
 ```
 
-`GET http://localhost:3000/api/health` harus menghasilkan `{"status":"ok"}`. Server terikat ke loopback untuk pengembangan; health hanya memeriksa HTTP, bukan database. Endpoint Google belum mengeluarkan sesi aplikasi. Jangan gunakan H-01 sebagai autentikasi produksi.
+`GET http://localhost:3000/api/health` harus menghasilkan `{"status":"ok"}`. Server terikat ke loopback untuk pengembangan; health hanya memeriksa HTTP, bukan database. Autentikasi sekarang menerbitkan cookie sesi setelah verifikasi Google dan upsert pengguna berhasil.
 
 ## Konfigurasi Aiven (database bersama)
 
@@ -47,19 +47,26 @@ Pada Google Auth Platform pilih client **Web application**. Isi branding dan aut
 
 Isi `GOOGLE_CLIENT_ID` dengan client ID berakhiran `.apps.googleusercontent.com`. Client secret tidak diperlukan untuk verifikasi ID token. Restart backend setelah mengubah `.env`.
 
-Frontend produk tidak dibuat oleh backend ini. Untuk tes Google nyata **tanpa perubahan database**, jalankan `npm run google:check`, buka `http://localhost:5173`, lalu klik tombol Google. Script diagnostik memakai verifier service yang sama, tetapi hanya mengembalikan profil terverifikasi tanpa memanggil model/database. `/check-status` pada server diagnostik mengembalikan jumlah verifikasi berhasil tanpa token atau profil. Hentikan diagnostik sebelum menjalankan frontend Vite pada port yang sama. Endpoint diagnostik tidak dipasang oleh `server.js`.
+Isi `SESSION_SECRET` dengan minimal 32 karakter acak dari generator kriptografis; simpan hanya pada environment backend. Jangan mengganti secret setiap restart. `cookie-session` menyimpan hanya Google subject dan waktu kedaluwarsa pada cookie bertanda tangan, HttpOnly, SameSite=Lax, dan Secure saat `NODE_ENV=production`. Sesi berlaku absolut satu jam dan kedaluwarsanya juga diperiksa server. Respons autentikasi tidak di-cache. Cookie ditandatangani, bukan dienkripsi; tidak memuat token Google, email, atau kredensial database.
 
-Pada frontend produk nanti, callback menerima `response.credential`, lalu mengirim ke API port 3000:
+`GET /api/auth/me` memakai identitas cookie, membaca profil terbaru melalui model Prisma, dan menolak sesi palsu/kedaluwarsa serta pengguna yang sudah dihapus. `POST /api/auth/logout` dengan JSON `{}` menghapus cookie browser dan idempoten. Semua POST autentikasi memerlukan `Origin` persis sama dengan `FRONTEND_ORIGIN`; CORS credentials hanya diizinkan untuk origin tersebut. Frontend menggunakan `credentials: 'include'`.
+
+Tidak ada tabel atau migrasi tambahan. Sesi bersifat stateless: logout menghapus cookie pada browser ini; salinan cookie yang dicuri masih berlaku sampai batas satu jam. Pencabutan seluruh sesi/perangkat membutuhkan penyimpanan sesi server sebagai pekerjaan terpisah. Di produksi wajib HTTPS; deployment di balik reverse proxy perlu konfigurasi trusted proxy yang sesuai topologi agar Express mengenali koneksi HTTPS, bukan kepercayaan proxy tanpa batas. Endpoint privat berikutnya harus memasang middleware sesi dan `requireAuth`, serta memeriksa pemilik resource di service/model; endpoint proyek/klip belum tersedia.
+
+Frontend produk tersedia di `frontend/`, pada `http://localhost:5173/login`. Untuk tes Google nyata **tanpa perubahan database**, masih tersedia `npm run google:check`. Hentikan Vite sebelum memakai diagnostik pada port 5173. Script diagnostik memakai verifier service yang sama, tetapi hanya mengembalikan profil terverifikasi tanpa memanggil model/database. `/check-status` hanya mengembalikan jumlah verifikasi berhasil tanpa token/profil. Endpoint diagnostik tidak dipasang oleh `server.js`.
+
+Pada frontend produk, callback menerima `response.credential`, lalu mengirim ke API port 3000:
 
 ```javascript
 const result = await fetch('http://localhost:3000/api/auth/google', {
   method: 'POST',
+  credentials: 'include',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ credential: response.credential }),
 });
 ```
 
-Client ID bukan ID token. Jangan menempelkan ID token di chat, log, atau shell history. HTTP 200 berisi `{ user: { id, email, displayName, avatarUrl } }`; backend hanya memakai identitas yang sudah diverifikasi. Penyimpanan menggunakan Google `sub`, bukan email, sebagai identitas unik. Profil tidak memberi akses ke resource privat; sesi/middleware lengkap milik H-03.
+Client ID bukan ID token. Jangan menempelkan ID token di chat, log, atau shell history. HTTP 200 berisi `{ user: { id, email, displayName, avatarUrl } }` beserta cookie sesi; backend hanya memakai identitas yang sudah diverifikasi. Penyimpanan menggunakan Google `sub`, bukan email, sebagai identitas unik. Objek profil dari frontend tidak digunakan sebagai bukti otorisasi.
 
 Tes Google nyata akan melakukan upsert pengguna. Pada database bersama koordinasikan akun uji setelah schema siap. Pemeriksaan koneksi `db:check` tidak melakukan upsert tersebut.
 

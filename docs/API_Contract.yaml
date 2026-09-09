@@ -1,10 +1,12 @@
 openapi: 3.0.3
 info:
-  title: Cuplik API — H-01
-  version: 0.1.0
+  title: Clippr API — Autentikasi
+  version: 0.2.0
   description: >-
-    Draft untuk review A/B/C. Hanya health dan verifikasi awal Google yang diimplementasikan.
-    Respons Google belum menerbitkan sesi atau memberi akses ke proyek/klip.
+    Health dan autentikasi Google diimplementasikan. Login menerbitkan cookie sesi
+    HttpOnly bertanda tangan dengan masa berlaku absolut satu jam; tidak diperpanjang
+    oleh polling. /auth/me membaca profil sesi dari database. Endpoint proyek/klip masih draft.
+    POST autentikasi memerlukan Origin yang persis cocok dengan FRONTEND_ORIGIN dan JSON.
 servers:
   - url: http://localhost:3000/api
 paths:
@@ -37,7 +39,7 @@ paths:
                 credential: { type: string, minLength: 1, maxLength: 16384 }
       responses:
         '200':
-          description: Identitas diverifikasi dan disimpan; belum ada sesi aplikasi
+          description: Identitas diverifikasi dan disimpan; cookie clippr_session dan clippr_session.sig diterbitkan (HttpOnly, SameSite=Lax, Secure di produksi)
           content:
             application/json:
               schema:
@@ -64,13 +66,101 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: ORIGIN_NOT_ALLOWED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '415':
+          description: JSON_REQUIRED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '503':
-          description: GOOGLE_NOT_CONFIGURED, GOOGLE_UNAVAILABLE, DATABASE_NOT_CONFIGURED, DATABASE_UNAVAILABLE
+          description: GOOGLE_NOT_CONFIGURED, GOOGLE_UNAVAILABLE, DATABASE_NOT_CONFIGURED, DATABASE_UNAVAILABLE, SESSION_NOT_CONFIGURED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /auth/me:
+    get:
+      operationId: currentUser
+      summary: Profil pengguna dari cookie sesi aktif; identitas tidak diambil dari query/body
+      security:
+        - sessionCookie: []
+          sessionSignature: []
+      responses:
+        '200':
+          description: Profil terbaru dari database, Cache-Control no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: UNAUTHENTICATED (cookie hilang, palsu, kedaluwarsa, atau pengguna tidak ditemukan)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: SESSION_NOT_CONFIGURED, DATABASE_NOT_CONFIGURED, DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Hapus cookie sesi pada browser ini; idempoten
+      description: >-
+        Kirim JSON kosong dan Origin yang dikonfigurasi. Cookie bertanda tangan bersifat
+        stateless; salinan cookie yang sudah dicuri tetap berlaku hingga kedaluwarsa.
+        Pencabutan seluruh sesi lintas perangkat belum tersedia.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, maxProperties: 0 }
+      responses:
+        '204':
+          description: Cookie browser dihapus, Cache-Control no-store
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: ORIGIN_NOT_ALLOWED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '415':
+          description: JSON_REQUIRED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: SESSION_NOT_CONFIGURED
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: clippr_session
+    sessionSignature:
+      type: apiKey
+      in: cookie
+      name: clippr_session.sig
   schemas:
+    User:
+      type: object
+      required: [id, email, displayName, avatarUrl]
+      properties:
+        id: { type: string, description: Google subject }
+        email: { type: string, format: email }
+        displayName: { type: string }
+        avatarUrl: { type: string, nullable: true }
     SubtitleStyle:
       type: string
       enum: [clean, active_word_highlight]
@@ -110,7 +200,7 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 x-future-endpoints:
   description: Draft berikut belum diimplementasikan; detail request/response wajib disepakati pemilik sebelum integrasi.
-  authentication: Sesi aplikasi cookie HttpOnly direncanakan H-03; semua resource privat wajib memeriksa pemilik di backend.
+  authentication: Cookie HttpOnly dan profil sesi tersedia; endpoint proyek/klip berikutnya wajib memakai middleware sesi, requireAuth, dan memeriksa pemilik di backend.
   validation: >-
     Belum diimplementasikan pada pipeline H-01: maksimal 20 istilah; transkrip per kata
     dengan word, start_time, end_time, confidence; hasil kurasi 3–5 klip masing-masing
@@ -128,8 +218,6 @@ x-future-endpoints:
     response-fields:
       $ref: '#/components/schemas/ClipSubtitleFields'
   endpoints:
-    - { owner: A, method: GET, path: /auth/me, purpose: Profil sesi aktif }
-    - { owner: A, method: POST, path: /auth/logout, purpose: Akhiri sesi }
     - { owner: A, method: GET, path: /projects, purpose: Daftar proyek pengguna }
     - { owner: A, method: POST, path: /projects, purpose: Buat metadata proyek }
     - { owner: A, method: GET, path: '/projects/{id}', purpose: Detail dan status untuk polling }

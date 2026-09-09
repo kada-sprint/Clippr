@@ -1,6 +1,6 @@
 const { OAuth2Client } = require('google-auth-library');
 const env = require('../config/env');
-const { upsertGoogleUser } = require('../models/user.model');
+const { upsertGoogleUser, findUserById } = require('../models/user.model');
 const AppError = require('../utils/app-error');
 
 const googleClient = new OAuth2Client();
@@ -48,4 +48,18 @@ function createAuthService({
   };
 }
 
-module.exports = { createAuthService };
+function createCurrentUserService({ findUser = findUserById } = {}) {
+  return async function getCurrentUser(id) {
+    let user;
+    try {
+      user = await findUser(id);
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(503, 'DATABASE_UNAVAILABLE', 'Data pengguna belum tersedia.');
+    }
+    if (!user) throw new AppError(401, 'UNAUTHENTICATED', 'Akun tidak ditemukan. Silakan masuk kembali.');
+    return user;
+  };
+}
+
+module.exports = { createAuthService, createCurrentUserService };

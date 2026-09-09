@@ -10,4 +10,11 @@ async function upsertGoogleUser(profile) {
   });
 }
 
-module.exports = { upsertGoogleUser };
+async function findUserById(id) {
+  return getPrisma().user.findUnique({
+    where: { id },
+    select: { id: true, email: true, displayName: true, avatarUrl: true },
+  });
+}
+
+module.exports = { upsertGoogleUser, findUserById };
