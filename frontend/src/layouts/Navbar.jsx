@@ -28,12 +28,25 @@ export default function Navbar({ onStart }) {
           aria-label="Navigasi utama"
         ></nav>
         <div className="nav-actions">
-          {user ? <Link className="nav-user" to="/login"><Icon name="user" size={17} /><span>{user.displayName}</span></Link> : <button className="text-button" onClick={onStart} disabled={loading}>
-            Masuk
-          </button>}
-          {!user && <button className="button primary small" onClick={onStart}>
-            Mulai Buat Cuplikan <Icon name="arrow" size={14} />
-          </button>}
+          {user ? (
+            <Link className="nav-user" to="/upload">
+              <Icon name="user" size={17} />
+              <span>{user.displayName}</span>
+            </Link>
+          ) : (
+            <button
+              className="text-button"
+              onClick={onStart}
+              disabled={loading}
+            >
+              Masuk
+            </button>
+          )}
+          {!user && (
+            <button className="button primary small" onClick={onStart}>
+              Mulai Buat Cuplikan <Icon name="arrow" size={14} />
+            </button>
+          )}
         </div>
       </div>
     </header>

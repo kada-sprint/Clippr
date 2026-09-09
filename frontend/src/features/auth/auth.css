@@ -22,7 +22,7 @@
 .auth-benefits span { display: flex; align-items: center; gap: 5px; }
 .auth-benefits svg { color: #5dcca9; }
 .auth-card { padding: 42px 36px 32px; border: 1px solid #2a3b56; background: linear-gradient(145deg, #192437, #131c2b); border-radius: 19px; box-shadow: 0 22px 75px #0003; text-align: center; }
-.auth-card-icon { display: grid; place-items: center; width: 54px; height: 54px; background: #213d6a; border: 1px solid #375b91; border-radius: 15px; color: #9cc0ff; margin: 0 auto 25px; }
+.auth-card-logo { display: block; width: 54px; height: 54px; margin: 0 auto 25px; }
 .auth-card .eyebrow { font-size: 9px; letter-spacing: .1em; }
 .auth-card h2 { font-size: 30px; letter-spacing: -1px; }
 .auth-intro { color: #a7b5cc; font-size: 13px; line-height: 1.8; margin: 15px 0 27px; }
@@ -40,11 +40,6 @@
 .auth-security p { font-size: 11px; line-height: 1.7; color: #aabbd1; }
 .auth-registration { color: #93a4c0; font-size: 11px; line-height: 1.9; margin-top: 23px; }
 .auth-registration strong { font-weight: 500; color: #bdcbe1; }
-.auth-account { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.account-initial { width: 52px; height: 52px; display: grid; place-items: center; color: #bfdaff; background: #285398; border-radius: 50%; font-size: 23px; margin-bottom: 8px; }
-.auth-account > strong { font-size: 17px; overflow-wrap: anywhere; max-width: 100%; }
-.auth-account > span:not(.account-initial) { color: #acbcd5; font-size: 12px; overflow-wrap: anywhere; max-width: 100%; }
-.auth-account .button { margin-top: 18px; }
 .auth-origin p { color: #acbcd5; font-size: 12px; margin-bottom: 20px; }
 .auth-bottom { display: flex; justify-content: space-between; align-items: center; gap: 20px; color: #8498b8; font-size: 10px; padding-top: 20px; border-top: 1px solid #223149; }
 .auth-bottom a { display: flex; gap: 7px; align-items: center; }

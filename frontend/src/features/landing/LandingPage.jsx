@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider.jsx";
 import Navbar from "../../layouts/Navbar.jsx";
 import Footer from "../../layouts/Footer.jsx";
 import Icon from "../../components/Icon.jsx";
@@ -217,7 +218,8 @@ function Portrait({ variant }) {
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const openStart = () => navigate('/login');
+  const { user } = useAuth();
+  const openStart = () => navigate(user ? '/upload' : '/login');
 
   return (
     <>
