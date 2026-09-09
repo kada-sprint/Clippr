@@ -2,7 +2,7 @@
 
 **Purpose:** Convert the qualitative "Concept Completeness" philosophy (FRD §2) into an explicit, checkable scoring rubric an LLM can apply consistently.
 
-**Output:** `concept_score` — integer 0–100.
+**Output:** `concept_score` — integer 0–98 (max possible: Opener 25 + Elaboration 38 + Conclusion 35).
 
 ---
 
@@ -17,7 +17,7 @@
 | 1–10 | Opener exists but is unclear or buried — viewer must wait too long to understand the clip's purpose. |
 | 0 | No identifiable opener — clip starts mid-elaboration or mid-thought. |
 
-### 2. Elaborasi / Solusi (Elaboration) — 0–40 pts
+### 2. Elaborasi / Solusi (Elaboration) — 0–38 pts
 
 Scored on two dimensions:
 
@@ -39,17 +39,17 @@ Scored on two dimensions:
 
 **Scoring guide:**
 
-| Specificity | Connective Tissue | Score Range |
-|-------------|-------------------|-------------|
-| Low | Low | 0–15 |
-| Low | Medium | 6–20 |
-| Low | High | 10–25 |
-| Medium | Low | 11–20 |
-| Medium | Medium | 16–30 |
-| Medium | High | 21–35 |
-| High | Low | 16–25 |
-| High | Medium | 21–35 |
-| High | High | 31–40 |
+| Specificity | Connective Tissue | Points |
+|-------------|-------------------|--------|
+| Low | Low | 8 |
+| Low | Medium | 14 |
+| Low | High | 20 |
+| Medium | Low | 16 |
+| Medium | Medium | 24 |
+| Medium | High | 32 |
+| High | Low | 22 |
+| High | Medium | 30 |
+| High | High | 38 |
 
 ### 3. Kesimpulan Mandiri (Conclusion) — 0–35 pts
 
@@ -57,10 +57,10 @@ A "conclusion" is defined as: final sentence(s) that signal closure — no new c
 
 | Range | Criteria |
 |-------|----------|
-| 31–35 | Clear concluding signal with summary or closure. Discourse marker present. No new claims. Feels complete. |
-| 21–30 | Conclusion present but minimal — a pleasantry or brief sign-off without recap. |
-| 11–20 | Abrupt but grammatically complete ending — no discourse marker, but the sentence is whole. |
-| 1–10 | Clip ends mid-thought or mid-sentence but the fragment is nearly complete. |
+| 31–35 | All three: (1) discourse marker present (jadi/intinya/kesimpulannya/semoga/oke/terima kasih), (2) final sentence has subject + predicate, (3) last word is not a conjunction or connector. |
+| 21–30 | At least one of the three conditions met, but not all three. |
+| 11–20 | Final sentence has subject + predicate (grammatically complete) but no discourse marker. |
+| 1–10 | Final sentence is a fragment — missing subject or predicate, or ends with a conjunction (dan/atau/tapi/karena). |
 | 0 | Clip cuts off mid-sentence with no closure. |
 
 ---
@@ -102,7 +102,7 @@ The first 20% of the clip (by word count) must contain an identifiable problem s
 
 ## Worked Examples
 
-### Example A: High-Scoring Clip (Score: 88/100)
+### Example A: High-Scoring Clip (Score: 96/98)
 
 **Transcript excerpt (Bahasa Indonesia):**
 
@@ -113,12 +113,12 @@ The first 20% of the clip (by word count) must contain an identifiable problem s
 | Component | Score | Reasoning |
 |-----------|-------|-----------|
 | Opener (0–25) | 23 | Problem clearly stated in first sentence ("tiga jam setiap hari menilai manual"). Discourse marker "Nah" transitions to solution. |
-| Elaboration (0–40) | 35 | Specificity: HIGH — named platform (Gradescope), specific time comparison (3 jam → 30 menit). Connective tissue: HIGH — explains causal chain (manual grading → time waste → AI solution → specific impact). |
-| Conclusion (0–35) | 35 | Clear discourse marker ("Jadi intinya"), explicit summary ("bukan menggantikan guru, tapi membantu"), no new claims. Complete closure. |
-| Penalties | −5 | No identifiable problem in first 20% (first 20% ≈ 32 words; problem appears at word ~2). *No penalty applied.* |
-| **Total** | **88** | |
+| Elaboration (0–38) | 38 | Specificity: HIGH — named platform (Gradescope), specific time comparison (3 jam → 30 menit). Connective tissue: HIGH — explains causal chain (manual grading → time waste → AI solution → specific impact). |
+| Conclusion (0–35) | 35 | Discourse marker present ("Jadi intinya"), final sentence has subject + predicate, last word is not a conjunction. |
+| Penalties | 0 | Problem appears at word ~2 (within first 20%). No penalty applied. |
+| **Total** | **96** | |
 
-### Example B: Low-Scoring Clip (Score: 32/100)
+### Example B: Low-Scoring Clip (Score: 0/98)
 
 **Transcript excerpt (Bahasa Indonesia):**
 
@@ -128,13 +128,11 @@ The first 20% of the clip (by word count) must contain an identifiable problem s
 
 | Component | Score | Reasoning |
 |-----------|-------|-----------|
-| Opener (0–25) | 5 | No problem or question framed. "Nah terus" is a casual filler, not a context-setting opener. Viewer has no idea what this clip is about. |
-| Elaboration (0–40) | 12 | Specificity: LOW — "banyak banget contohnya" with no concrete examples. "di bidang kesehatan terus di bidang pendidikan" is vague listing. Connective tissue: LOW — no explanation of how/why, just lists domains. |
+| Opener (0–25) | 5 | No problem or question framed. "Nah terus" is a casual filler, not a context-setting opener. |
+| Elaboration (0–38) | 8 | Specificity: LOW — "banyak banget contohnya" with no concrete examples. Connective tissue: LOW — no explanation of how/why, just lists domains. |
 | Conclusion (0–35) | 0 | Clip cuts off mid-sentence: "perusahaan yang sudah pakai AI untuk" — unfinished clause, no closure. |
-| Penalties | +15 | Hard cap at 40 (mid-sentence ending). −15 for no problem in first 20%. |
-| **Total** | **32** | (Elaboration 12 + Opener 5 + Conclusion 0 + Penalty −15 = 2, capped at 40, then adjusted to 32 based on component weighting) |
-
-*Note: When penalties apply, the cap overrides the raw sum. Final score = min(raw_sum, 40) after penalty deduction.*
+| Penalties | −15 | No identifiable problem in first 20% of clip. |
+| **Total** | **0** | (5 + 8 + 0 − 15 = −2, clamped to 0) |
 
 ---
 
@@ -143,5 +141,6 @@ The first 20% of the clip (by word count) must contain an identifiable problem s
 1. Score each component independently before summing.
 2. Apply penalty rules after component scoring.
 3. If a penalty triggers the hard cap (mid-sentence), the maximum possible score is 40 regardless of component totals.
-4. All judgment calls should be anchored on the examples above. When in doubt, score conservatively.
-5. This rubric is designed to be pasted into an LLM system prompt. Do not modify wording without updating the anchoring examples.
+4. Scores cannot go below 0 (clamp negative totals to 0).
+5. All judgment calls should be anchored on the examples above. When in doubt, score conservatively.
+6. This rubric is designed to be pasted into an LLM system prompt. Do not modify wording without updating the anchoring examples.
