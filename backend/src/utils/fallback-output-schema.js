@@ -1,12 +1,12 @@
 const Joi = require('joi');
 
-const segmentSchema = Joi.object({
+const fallbackSegmentSchema = Joi.object({
   start_time_seconds: Joi.number().min(0).required(),
   end_time_seconds: Joi.number().min(0).required(),
   duration: Joi.number().min(25).max(75).required(),
-  concept_score: Joi.number().integer().min(0).max(98).required(),
+  concept_score: Joi.number().integer().min(0).max(98).allow(null).required(),
   suggested_title: Joi.string().min(1).required(),
-  pedagogical_reason: Joi.string().max(280).required(),
+  pedagogical_reason: Joi.string().max(280).allow(null).required(),
 }).custom((value, helpers) => {
   if (value.end_time_seconds <= value.start_time_seconds) {
     return helpers.error('any.invalid', {
@@ -22,8 +22,8 @@ const segmentSchema = Joi.object({
   return value;
 });
 
-const clipOutputSchema = Joi.object({
-  segments: Joi.array().items(segmentSchema).min(0).max(5).required(),
+const fallbackOutputSchema = Joi.object({
+  segments: Joi.array().items(fallbackSegmentSchema).min(1).max(5).required(),
 });
 
-module.exports = clipOutputSchema;
+module.exports = fallbackOutputSchema;
