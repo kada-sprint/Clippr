@@ -109,7 +109,7 @@ Transkrip:
 ${transcriptText}`;
 }
 
-async function callLlm(prompt) {
+async function defaultCallLlm(prompt) {
   // TODO: Replace with actual LLM API call
   // For now, return a mock response for testing
   return JSON.stringify({ segments: [] });
@@ -173,7 +173,7 @@ async function insertClips(prisma, projectId, segments, isFallback) {
   return clips;
 }
 
-async function curateClips(projectId, transcript) {
+async function curateClips(projectId, transcript, { callLlm = defaultCallLlm } = {}) {
   const prisma = getPrisma();
 
   const chunks = chunker(transcript);
@@ -219,4 +219,4 @@ async function curateClips(projectId, transcript) {
   return dedupedClips;
 }
 
-module.exports = { curateClips, dedupClips, normalizeScore, computeOverlap };
+module.exports = { curateClips, dedupClips, normalizeScore, computeOverlap, buildPrompt, parseLlmResponse };

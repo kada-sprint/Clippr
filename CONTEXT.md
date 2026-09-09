@@ -39,3 +39,19 @@ _Avoid_: Crop, resize, convert
 **Delta Re-render**:
 Re-rendering only the modified portion of a clip (e.g., subtitle text change) rather than re-rendering the entire clip.
 _Avoid_: Partial render, incremental render
+
+**Dry-Run Integration Test**:
+An end-to-end test of the curation pipeline components (chunker → prompt builder → LLM call → schema validation → fallback parser) without database writes or live API calls. Uses a mock LLM and sample transcripts to verify the chain works before live integration.
+_Avoid_: Dry-run validation, validation test, mock test
+
+**Mock LLM**:
+A stub function that returns canned LLM responses matching the clip output schema. Used in dry-run tests to exercise the parsing and validation chain without calling a real API. Distinct from "sample transcript" which is input data.
+_Avoid_: Stub LLM, fake LLM, mocked response
+
+**Sample Transcript**:
+A JSON fixture file containing word-level timestamps (as defined by Transcript Input) used as input for testing. The canonical sample is `docs/rfc/C2-01/sample_transcript_mock.json`.
+_Avoid_: Mock transcript, test transcript, fixture transcript
+
+**Pipeline Components**:
+The curation pipeline parts that can be tested in isolation: chunker, prompt builder, LLM call (mocked), response parser, and schema validator. Excludes database persistence (Prisma) and HTTP layer.
+_Avoid_: Full pipeline, end-to-end pipeline, curation chain
