@@ -1,0 +1,20 @@
+[
+  {
+    "source": "max_tokens_truncation",
+    "description": "Truncated JSON from low max_tokens",
+    "rawOutput": "{\"segments\": [{\"start_time_seconds\": 10",
+    "handled": true
+  },
+  {
+    "source": "prose_wrapped",
+    "description": "JSON wrapped in explanation text",
+    "rawOutput": "Here is the JSON output:\n```json\n{\"segments\": []}\n```",
+    "handled": true
+  },
+  {
+    "source": "empty_segments",
+    "description": "Valid JSON but empty segments array",
+    "rawOutput": "{\"segments\": []}",
+    "handled": true
+  }
+]

@@ -1,6 +1,8 @@
 const crypto = require('node:crypto');
 const { getPrisma } = require('../config/prisma');
+const env = require('../config/env');
 const { createChunker } = require('./chunker');
+const { callChatCompletion } = require('./llm-client');
 const clipOutputSchema = require('../utils/clip-output-schema');
 const fallbackOutputSchema = require('../utils/fallback-output-schema');
 const { parseFallback, ParseFailure } = require('./fallback_parser');
@@ -110,9 +112,7 @@ ${transcriptText}`;
 }
 
 async function defaultCallLlm(prompt) {
-  // TODO: Replace with actual LLM API call
-  // For now, return a mock response for testing
-  return JSON.stringify({ segments: [] });
+  return callChatCompletion(prompt);
 }
 
 function parseLlmResponse(rawResponse) {
@@ -183,10 +183,58 @@ async function curateClips(projectId, transcript, { callLlm = defaultCallLlm } =
 
   const allClips = [];
 
-  for (const chunk of chunks) {
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
     const prompt = buildPrompt(chunk);
-    const rawResponse = await callLlm(prompt);
+    const callStart = Date.now();
+
+    let rawResponse;
+    let usage = { inputTokens: 0, outputTokens: 0 };
+    let retryCount = 0;
+
+    try {
+      const llmResult = await callLlm(prompt);
+      if (typeof llmResult === 'string') {
+        rawResponse = llmResult;
+      } else {
+        rawResponse = llmResult.text;
+        usage = llmResult.usage || usage;
+        retryCount = llmResult.retryCount || 0;
+      }
+    } catch (err) {
+      const latencyMs = Date.now() - callStart;
+      await prisma.llmCall.create({
+        data: {
+          projectId,
+          chunkIndex: i,
+          model: env.llmModel || 'unknown',
+          inputTokens: 0,
+          outputTokens: 0,
+          latencyMs,
+          success: false,
+          errorCode: err.code || 'UNKNOWN',
+          retryCount: 0,
+        },
+      });
+      throw err;
+    }
+
+    const latencyMs = Date.now() - callStart;
     const result = parseLlmResponse(rawResponse);
+
+    await prisma.llmCall.create({
+      data: {
+        projectId,
+        chunkIndex: i,
+        model: env.llmModel || 'unknown',
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        latencyMs,
+        success: result.success,
+        errorCode: result.success ? null : 'PARSE_FAILED',
+        retryCount,
+      },
+    });
 
     if (result.success && result.data.segments.length > 0) {
       const clips = await insertClips(
