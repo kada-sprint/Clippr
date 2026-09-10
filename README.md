@@ -1,4 +1,4 @@
-# Clippr (Cuplik)
+# Clippr
 
 Cuplik adalah aplikasi web yang dirancang untuk mengubah rekaman webinar menjadi 3–5 klip vertikal (9:16) dengan subtitle bahasa Indonesia. Alur produk mencakup login Google, pengelolaan proyek, upload video, transkripsi dan kurasi AI, editor ringan, serta ekspor MP4/SRT. Integrasi pipeline video masih dalam pengembangan.
 
