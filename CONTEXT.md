@@ -55,3 +55,11 @@ _Avoid_: Mock transcript, test transcript, fixture transcript
 **Pipeline Components**:
 The curation pipeline parts that can be tested in isolation: chunker, prompt builder, LLM call (mocked), response parser, and schema validator. Excludes database persistence (Prisma) and HTTP layer.
 _Avoid_: Full pipeline, end-to-end pipeline, curation chain
+
+**Token Cost Projection**:
+Estimated LLM API cost for processing a full video, computed from per-chunk token counts multiplied by provider pricing. Based on real API calls, not estimates.
+_Avoid_: Cost estimate, API cost
+
+**Adaptive Top-N**:
+Post-curation selection strategy that sorts clips by concept_score descending and returns the top N (default 5), without a minimum score threshold. Ensures clips are always returned for non-empty transcripts.
+_Avoid_: Score filtering, quality gate

@@ -19,20 +19,20 @@ function normalizeScore(rawScore) {
 }
 
 function computeOverlap(clipA, clipB) {
-  const overlapStart = Math.max(clipA.start_time_seconds, clipB.start_time_seconds);
-  const overlapEnd = Math.min(clipA.end_time_seconds, clipB.end_time_seconds);
+  const overlapStart = Math.max(clipA.startTime, clipB.startTime);
+  const overlapEnd = Math.min(clipA.endTime, clipB.endTime);
   const intersection = Math.max(0, overlapEnd - overlapStart);
-  const durationA = clipA.end_time_seconds - clipA.start_time_seconds;
-  const durationB = clipB.end_time_seconds - clipB.start_time_seconds;
+  const durationA = clipA.endTime - clipA.startTime;
+  const durationB = clipB.endTime - clipB.startTime;
   const union = durationA + durationB - intersection;
   return union > 0 ? intersection / union : 0;
 }
 
 function isContained(clipA, clipB) {
-  return (clipA.start_time_seconds >= clipB.start_time_seconds &&
-          clipA.end_time_seconds <= clipB.end_time_seconds) ||
-         (clipB.start_time_seconds >= clipA.start_time_seconds &&
-          clipB.end_time_seconds <= clipA.end_time_seconds);
+  return (clipA.startTime >= clipB.startTime &&
+          clipA.endTime <= clipB.endTime) ||
+         (clipB.startTime >= clipA.startTime &&
+          clipB.endTime <= clipA.endTime);
 }
 
 function dedupClips(clips) {
@@ -164,8 +164,6 @@ async function insertClips(prisma, projectId, segments, isFallback) {
 
     clips.push({
       ...clip,
-      start_time_seconds: segment.start_time_seconds,
-      end_time_seconds: segment.end_time_seconds,
       concept_score: segment.concept_score,
     });
   }
