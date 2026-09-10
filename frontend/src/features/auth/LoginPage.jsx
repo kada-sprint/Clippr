@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import Icon from "../../components/Icon.jsx";
 import { useAuth } from "./AuthProvider.jsx";
 import GoogleSignInButton from "./components/GoogleSignInButton.jsx";
@@ -28,7 +28,11 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const pending = useRef(false);
-  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from;
+  const destination = ["/upload", "/queue", "/editor"].includes(from?.pathname)
+    ? { pathname: from.pathname, search: from.search, hash: from.hash }
+    : "/upload";
   const localIp = window.location.hostname === "127.0.0.1";
 
   const handleCredential = useCallback(
@@ -43,7 +47,6 @@ export default function LoginPage() {
       setError("");
       try {
         await signIn(credential);
-        navigate("/upload", { replace: true });
       } catch (failure) {
         setError(loginErrors[failure.code] || failure.message);
       } finally {
@@ -51,10 +54,10 @@ export default function LoginPage() {
         setSubmitting(false);
       }
     },
-    [navigate, signIn],
+    [signIn],
   );
 
-  if (!loading && !sessionError && user) return <Navigate to="/upload" replace />;
+  if (!loading && !sessionError && user) return <Navigate to={destination} replace />;
 
   return (
     <main className="auth-page">

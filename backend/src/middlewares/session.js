@@ -41,4 +41,19 @@ function requireTrustedOrigin(frontendOrigin) {
   };
 }
 
-module.exports = { createSessionMiddleware, requireAuth, requireTrustedOrigin, SESSION_DURATION_MS };
+function requireSameOrigin(frontendOrigin) {
+  return (req, res, next) => {
+    if (req.get('origin') !== frontendOrigin) {
+      return next(new AppError(403, 'ORIGIN_NOT_ALLOWED', 'Alamat asal permintaan tidak diizinkan.'));
+    }
+    next();
+  };
+}
+
+module.exports = {
+  createSessionMiddleware,
+  requireAuth,
+  requireTrustedOrigin,
+  requireSameOrigin,
+  SESSION_DURATION_MS,
+};

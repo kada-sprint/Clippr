@@ -1,134 +1,144 @@
 const AppError = require('../utils/app-error');
-const {
-  createProject: defaultCreateProject,
-  updateProjectAudio: defaultUpdateProjectAudio,
-  updateProjectTranscript: defaultUpdateProjectTranscript,
-  findUserById: defaultFindUserById,
-} = require('../models/project.model');
-const { extractAudio: defaultExtractAudio } = require('../utils/ffmpeg');
-const { transcribeAudio: defaultTranscribeAudio } = require('./stt.service');
-const { removeUploadedFile } = require('../middlewares/upload.middleware');
+const projectModel = require('../models/project.model');
 
 const ALLOWED_LAYOUTS = Object.freeze(['SLIDE_CAM', 'TALKING_HEAD', 'SLIDE_ONLY']);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/**
- * Memvalidasi dan menormalisasi custom vocabulary (string koma, maks 20 kata)
- * @param {string} [rawVocabulary]
- * @returns {string} String istilah yang sudah dibersihkan
- */
+function validateProjectId(projectId) {
+  if (typeof projectId !== 'string' || !UUID_PATTERN.test(projectId)) {
+    throw new AppError(400, 'INVALID_PROJECT_ID', 'ID proyek tidak valid.');
+  }
+  return projectId;
+}
+
 function validateAndFormatVocabulary(rawVocabulary) {
-  if (!rawVocabulary || typeof rawVocabulary !== 'string') {
-    return '';
+  if (!rawVocabulary || typeof rawVocabulary !== 'string') return '';
+  const terms = [];
+  for (const value of rawVocabulary.split(',')) {
+    const term = value.trim();
+    if (!term) continue;
+    const duplicate = terms.some(
+      (item) => item.toLocaleLowerCase('id') === term.toLocaleLowerCase('id'),
+    );
+    if (!duplicate) terms.push(term);
   }
-
-  const terms = rawVocabulary
-    .split(',')
-    .map((term) => term.trim())
-    .filter((term) => term.length > 0);
-
   if (terms.length > 20) {
-    throw new AppError(400, 'VOCABULARY_LIMIT_EXCEEDED', 'custom_vocabulary maksimal 20 kata.');
+    throw new AppError(400, 'VOCABULARY_LIMIT_EXCEEDED', 'Kamus istilah maksimal 20 istilah.');
   }
-
   return terms.join(', ');
 }
 
-/**
- * Memvalidasi pilihan layout video
- * @param {string} layout
- */
 function validateLayout(layout) {
-  if (!layout || typeof layout !== 'string' || !ALLOWED_LAYOUTS.includes(layout)) {
-    throw new AppError(
-      400,
-      'INVALID_LAYOUT',
-      `selected_layout tidak valid. Pilihan yang didukung: ${ALLOWED_LAYOUTS.join(', ')}.`
-    );
+  if (typeof layout !== 'string' || !ALLOWED_LAYOUTS.includes(layout)) {
+    throw new AppError(400, 'INVALID_LAYOUT', 'Layout yang dipilih tidak didukung.');
   }
   return layout;
 }
 
-/**
- * Factory function untuk membuat instance Project Service (mendukung dependency injection untuk unit testing)
- */
-function createProjectService({
-  createProject = defaultCreateProject,
-  updateProjectAudio = defaultUpdateProjectAudio,
-  updateProjectTranscript = defaultUpdateProjectTranscript,
-  findUserById = defaultFindUserById,
-  extractAudio = defaultExtractAudio,
-  transcribeAudio = defaultTranscribeAudio,
-} = {}) {
+function toSummary(project) {
   return {
-    async handleVideoUpload({ file, selectedLayout, customVocabulary, userId }) {
-      let audioPath = null;
+    id: project.id,
+    status: project.status,
+    processingStage: project.processingStage,
+    selectedLayout: project.selectedLayout,
+    hasSource: Boolean(project.sourceVideoPath),
+    clipCount: project._count?.clips ?? 0,
+    createdAt: project.createdAt,
+  };
+}
 
+function toDetail(project) {
+  return {
+    ...toSummary(project),
+    customVocabulary: project.customVocabulary,
+    lastEditActivityAt: project.lastEditActivityAt,
+    sourceExpiresAt: project.sourceExpiresAt,
+  };
+}
+
+function throwDatabaseError(error, message) {
+  if (error instanceof AppError) throw error;
+  throw new AppError(503, 'DATABASE_UNAVAILABLE', message);
+}
+
+function createProjectService({ projectRepository = projectModel } = {}) {
+  return {
+    async list(userId) {
       try {
-        if (!file || !file.path) {
-          throw new AppError(400, 'FILE_REQUIRED', 'File video wajib diunggah.');
-        }
-
-        // 1. Validasi layout
-        const validatedLayout = validateLayout(selectedLayout);
-
-        // 2. Validasi custom vocabulary (maks 20 kata)
-        const formattedVocabulary = validateAndFormatVocabulary(customVocabulary);
-
-        // 3. Validasi identitas pengguna
-        if (!userId || typeof userId !== 'string' || !userId.trim()) {
-          throw new AppError(401, 'UNAUTHENTICATED', 'Identitas pengguna diperlukan untuk membuat proyek.');
-        }
-
-        // 4. Pastikan pengguna terdaftar di database
-        const user = await findUserById(userId);
-        if (!user) {
-          throw new AppError(404, 'USER_NOT_FOUND', 'Pengguna pemilik proyek tidak ditemukan di sistem.');
-        }
-
-        // 5. Simpan record proyek ke database dengan status awal 'INGESTED'
-        const normalizedVideoPath = file.path.replaceAll('\\', '/');
-
-        const project = await createProject({
-          userId: user.id,
-          sourceVideoPath: normalizedVideoPath,
-          selectedLayout: validatedLayout,
-          customVocabulary: formattedVocabulary,
-          status: 'INGESTED',
-        });
-
-        // 6. Ekstraksi audio dari file video menggunakan FFmpeg (WAV 16kHz Mono)
-        audioPath = await extractAudio(file.path);
-
-        // 7. Update status di Prisma menjadi 'AUDIO_EXTRACTED' serta simpan path audio
-        await updateProjectAudio({
-          id: project.id,
-          audioPath,
-          status: 'AUDIO_EXTRACTED',
-        });
-
-        // 8. Transkripsi audio menggunakan STT (Elice / OpenAI Whisper) dengan Word-Level Timestamps
-        const transcriptJson = await transcribeAudio(audioPath, formattedVocabulary);
-
-        // 9. Simpan hasil transkrip ke DB dan perbarui status menjadi 'TRANSCRIBED'
-        const finalProject = await updateProjectTranscript({
-          id: project.id,
-          transcriptJson,
-          status: 'TRANSCRIBED',
-        });
-
-        return {
-          ...finalProject,
-          audioPath,
-        };
+        return (await projectRepository.listByUserId(userId)).map(toSummary);
       } catch (error) {
-        // Hapus file fisik temporer jika terjadi kegagalan agar tidak meninggalkan file sampah di disk
-        if (file?.path) {
-          await removeUploadedFile(file.path);
+        throwDatabaseError(error, 'Data proyek belum tersedia.');
+      }
+    },
+
+    async create(userId, body) {
+      if (!body || Array.isArray(body) || Object.keys(body).length) {
+        throw new AppError(400, 'INVALID_PROJECT_CREATE', 'Pembuatan proyek menggunakan objek JSON kosong.');
+      }
+      try {
+        return toSummary(await projectRepository.createForUser(userId));
+      } catch (error) {
+        throwDatabaseError(error, 'Proyek belum dapat dibuat.');
+      }
+    },
+
+    async get(userId, projectId) {
+      validateProjectId(projectId);
+      try {
+        const project = await projectRepository.findByIdForUser(projectId, userId);
+        if (!project) throw new AppError(404, 'PROJECT_NOT_FOUND', 'Proyek tidak ditemukan.');
+        return toDetail(project);
+      } catch (error) {
+        throwDatabaseError(error, 'Data proyek belum tersedia.');
+      }
+    },
+
+    async update(userId, projectId, body) {
+      validateProjectId(projectId);
+      if (!body || Array.isArray(body)) {
+        throw new AppError(400, 'INVALID_PROJECT_UPDATE', 'Perubahan proyek harus berupa objek JSON.');
+      }
+      const keys = Object.keys(body);
+      const allowedKeys = ['selectedLayout', 'customVocabulary'];
+      if (!keys.length || keys.some((key) => !allowedKeys.includes(key))) {
+        throw new AppError(400, 'INVALID_PROJECT_UPDATE', 'Hanya layout dan kamus istilah yang dapat diperbarui.');
+      }
+      const data = {};
+      if (Object.hasOwn(body, 'selectedLayout')) {
+        data.selectedLayout = validateLayout(body.selectedLayout);
+      }
+      if (Object.hasOwn(body, 'customVocabulary')) {
+        if (typeof body.customVocabulary !== 'string') {
+          throw new AppError(400, 'INVALID_VOCABULARY', 'Kamus istilah harus berupa teks dipisahkan koma.');
         }
-        if (audioPath) {
-          await removeUploadedFile(audioPath);
+        data.customVocabulary = validateAndFormatVocabulary(body.customVocabulary);
+      }
+      try {
+        const result = await projectRepository.updateSetupIfEmpty(projectId, userId, data);
+        if (result.state === 'missing') {
+          throw new AppError(404, 'PROJECT_NOT_FOUND', 'Proyek tidak ditemukan.');
         }
-        throw error;
+        if (result.state !== 'updated') {
+          throw new AppError(409, 'PROJECT_NOT_EDITABLE', 'Proyek hanya dapat diubah sebelum sumber diunggah.');
+        }
+        return toDetail(result.project);
+      } catch (error) {
+        throwDatabaseError(error, 'Perubahan proyek belum dapat disimpan.');
+      }
+    },
+
+    async remove(userId, projectId) {
+      validateProjectId(projectId);
+      try {
+        const result = await projectRepository.deleteIfEmpty(projectId, userId);
+        if (result.state === 'missing') {
+          throw new AppError(404, 'PROJECT_NOT_FOUND', 'Proyek tidak ditemukan.');
+        }
+        if (result.state !== 'deleted') {
+          throw new AppError(409, 'PROJECT_NOT_EMPTY', 'Hanya proyek kosong yang dapat dihapus.');
+        }
+      } catch (error) {
+        throwDatabaseError(error, 'Proyek belum dapat dihapus.');
       }
     },
   };
@@ -138,5 +148,6 @@ module.exports = {
   createProjectService,
   validateAndFormatVocabulary,
   validateLayout,
+  validateProjectId,
   ALLOWED_LAYOUTS,
 };

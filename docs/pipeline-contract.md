@@ -2,6 +2,12 @@
 
 Status: **belum disepakati A/B/C**. Dokumen ini tidak menyatakan queue/worker sudah tersedia. C mengimplementasikan fondasi pada H-02; B memiliki ingest/transcribe, C analyze/render, A schema/status/retensi. Gaya subtitle dan retensi 24 jam telah diselaraskan dengan keputusan terbaru pada PRD/FRD; integrasi pipeline tetap memerlukan review pemilik.
 
+Pembagian modul setelah integrasi H-02: A memiliki `project.*` untuk CRUD, ownership,
+dan pembacaan status. B memiliki `upload.*`; endpoint sumber menerima `projectId` melalui
+`POST /projects/{id}/source` dan memperbarui proyek yang sudah dibuat A, bukan membuat
+proyek baru. C memakai proyek yang sama untuk tahap analyze/render dan mengakhiri proses
+dengan `idle`/null atau `error`/tahap gagal.
+
 ## Payload dan urutan
 
 Usulan satu job pipeline `{ projectId }` membaca sumber, layout, kamus, dan pemilik dari database. Urutan: ingest -> transcribe -> analyze -> render. Job render ulang `{ projectId, clipId }` hanya merender satu klip menggunakan edit tersimpan dan tidak mengulang ASR/kurasi. Payload tidak membawa bytes media, password, atau token pengguna. Worker harus memverifikasi relasi klip/proyek sebelum bekerja.

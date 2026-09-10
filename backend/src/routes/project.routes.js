@@ -1,7 +1,11 @@
 const { Router } = require('express');
 const { createProjectController } = require('../controllers/project.controller');
-const { createUploadMiddleware } = require('../middlewares/upload.middleware');
-const { createSessionMiddleware } = require('../middlewares/session');
+const {
+  createSessionMiddleware,
+  requireAuth,
+  requireTrustedOrigin,
+  requireSameOrigin,
+} = require('../middlewares/session');
 
 /**
  * Factory untuk rute proyek Cuplik (/api/projects)
@@ -9,11 +13,14 @@ const { createSessionMiddleware } = require('../middlewares/session');
 function createProjectRoutes({
   projectService,
   sessionSecret,
+  frontendOrigin,
   production,
 } = {}) {
   const router = Router();
   const controller = createProjectController({ projectService });
-  const uploadMiddleware = createUploadMiddleware();
+  const session = createSessionMiddleware({ secret: sessionSecret, secure: production });
+  const trustedOrigin = requireTrustedOrigin(frontendOrigin);
+  const sameOrigin = requireSameOrigin(frontendOrigin);
 
   // Pastikan respons API tidak di-cache oleh browser/proxy
   router.use((req, res, next) => {
@@ -21,19 +28,11 @@ function createProjectRoutes({
     next();
   });
 
-  // Pasang session middleware jika secret tersedia agar req.session dapat dibaca
-  if (sessionSecret) {
-    router.use(createSessionMiddleware({ secret: sessionSecret, secure: production }));
-  }
-
-  /**
-   * POST /api/projects/upload
-   * Menerima multipart/form-data:
-   * - video_file (single file .mp4/.mov, maks 1GB)
-   * - selected_layout (string: 'SLIDE_CAM' | 'TALKING_HEAD' | 'SLIDE_ONLY')
-   * - custom_vocabulary (string dipisahkan koma, maks 20 kata)
-   */
-  router.post('/upload', uploadMiddleware, controller.upload);
+  router.get('/', session, requireAuth, controller.list);
+  router.post('/', session, requireAuth, trustedOrigin, controller.create);
+  router.get('/:id', session, requireAuth, controller.get);
+  router.patch('/:id', session, requireAuth, trustedOrigin, controller.update);
+  router.delete('/:id', session, requireAuth, sameOrigin, controller.remove);
 
   return router;
 }

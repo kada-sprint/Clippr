@@ -55,15 +55,15 @@ Keuntungan utama model ini adalah meminimalkan hambatan komunikasi API, mengelim
 </thead>
 <tbody>
 <tr class="odd">
-<td><strong>Fitur 1: Portal Akses, Google OAuth, &amp; Dashboard Proyek</strong></td>
+<td><strong>Fitur 1: Portal Akses, Google OAuth, Akses Proyek melalui Link, &amp; Retensi</strong></td>
 <td><strong>Orang A</strong></td>
 <td>1. Database schema (PostgreSQL di Aiven dengan Prisma) untuk tabel Users, Projects, Clips.<br />
 2. Alur integrasi Google OAuth 2.0 Backend Token Verification.<br />
-3. API Endpoints: CRUD Project metadata.<br />
+3. Persistensi proyek serta API akses metadata/status berdasarkan ID dengan pemeriksaan kepemilikan proyek/klip.<br />
 4. Cron-job pembersihan berkas &amp; retensi data.</td>
 <td>1. Integrasi Google OAuth 2.0 SDK Klien.<br />
 2. Halaman Login minimalis.<br />
-3. UI Dashboard Proyek (daftar draf video aktif, status pengerjaan asinkron, opsi hapus/edit proyek).</td>
+3. Routing setelah login ke upload atau kembali ke link proyek tujuan, dengan koordinasi integrasi halaman progres dan hasil bersama B/C.</td>
 </tr>
 <tr class="header">
 <td><strong>Fitur 2: Ingest Validasi, Ekstraksi Audio, &amp; Mesin Transkripsi (ASR)</strong></td>
@@ -95,6 +95,10 @@ Keuntungan utama model ini adalah meminimalkan hambatan komunikasi API, mengelim
 </table>
 
 **Koordinasi pipeline:** C menyiapkan fondasi queue/worker pada H-02. B mengimplementasikan job ingest/ekstraksi audio/transkripsi, C mengimplementasikan kurasi/render/render ulang, dan A mengoordinasikan persistensi status serta schema Prisma. Ketiganya menyepakati payload job dan status pada H-01. Bantuan lintas fitur harus menyebut pemilik utama, anggota pendukung, dan file yang dikerjakan.
+
+**Alur akses tanpa dashboard:** login → upload → progres → hasil/edit → ekspor. Tidak ada dashboard, daftar proyek, atau aksi pengelolaan proyek melalui dashboard; API daftar proyek tidak diwajibkan untuk alur ini. Pengguna menyimpan link proyek untuk membuka kembali progres atau hasil setelah menutup tab. Jika sesi berakhir, login mengembalikan pengguna ke proyek tujuan; login tanpa tujuan proyek membuka halaman upload. Link proyek tidak menggantikan autentikasi dan pemeriksaan kepemilikan pada setiap akses proyek/klip, preview, dan unduhan. Link tidak valid atau proyek yang tidak tersedia menampilkan pesan yang sesuai tanpa membocorkan data pengguna lain.
+
+**Koordinasi akses proyek:** A mengoordinasikan routing dan kontrak akses metadata/status berdasarkan ID dengan B/C. UI upload/progres tetap milik B; UI hasil/editor/ekspor tetap milik C. Tidak adanya daftar proyek tidak mengubah persistensi metadata/transkrip maupun kebijakan retensi media pada Bab 4 dan Bab 5.
 
 # 4. Spesifikasi Skema Database Relasional
 
@@ -214,7 +218,7 @@ Dengan mengalihkan model kerja dari spesialisasi peran ke pengembangan per-fitur
 </tr>
 <tr class="header">
 <td><strong>H-02</strong></td>
-<td>Menulis REST API endpoints untuk Dashboard Proyek (CRUD Project Metadata &amp; status polling endpoint). Pembuatan UI Dashboard Proyek (tampilan kartu draf video aktif, tombol "Buat Cuplikan Baru", status proyek).</td>
+<td>Menyiapkan persistensi proyek dan REST API akses metadata/status berdasarkan ID dengan pemeriksaan kepemilikan. Menyiapkan routing akses proyek melalui link serta menyepakati kontrak integrasi dengan B/C.</td>
 <td>Menyiapkan struktur awal UI dan workflow Fitur Ingest &amp; ASR untuk proses upload dan transkripsi.</td>
 <td>Menyiapkan fondasi BullMQ/Redis dan entry point worker Node.js terpisah untuk pipeline bersama. Memverifikasi job sederhana dan persistensi status bersama A/B. Merancang prompt kurasi serta validator keluaran JSON.</td>
 </tr>
@@ -226,7 +230,7 @@ Dengan mengalihkan model kerja dari spesialisasi peran ke pengembangan per-fitur
 </tr>
 <tr class="header">
 <td><strong>H-04</strong></td>
-<td>Mengintegrasikan Dashboard dengan CRUD metadata dan status proyek. Menyiapkan cron-job retensi serta koordinasi akses media dengan B/C.</td>
+<td>Mengintegrasikan login ke upload atau kembali ke link proyek tujuan, serta akses metadata/status dengan halaman progres dan hasil milik B/C. Menyiapkan cron-job retensi serta koordinasi akses media dengan B/C.</td>
 <td>Implementasi ekstraksi audio FFmpeg pada worker ingest milik B. Menghubungkan upload ke API dan queue, serta menampilkan upload progress.</td>
 <td>Menulis modul rendering video vertikal FFmpeg untuk 3 Layout Template (Template A: Slide+Cam, B: Talking-head, C: Slide Saja).</td>
 </tr>
@@ -244,7 +248,7 @@ Dengan mengalihkan model kerja dari spesialisasi peran ke pengembangan per-fitur
 </tr>
 <tr class="odd">
 <td><strong>H-07</strong></td>
-<td>Regression test Portal, OAuth, CRUD Project, Dashboard, dan retensi. Membantu verifikasi integrasi penuh bersama B/C.</td>
+<td>Regression test Portal, OAuth, akses proyek melalui link setelah tab ditutup, login kembali ke proyek tujuan, penolakan akses proyek pengguna lain, link tidak valid, dan retensi. Membantu verifikasi integrasi penuh bersama B/C.</td>
 <td>Regression test ingest/ASR, kegagalan job, dan progres. Membantu pengujian pipeline lengkap sampai edit dan ekspor.</td>
 <td>Menyelesaikan API Export Kit dan tombol unduh MP4/SRT. Memverifikasi edit -> render ulang satu klip -> ekspor tanpa merender ulang klip lain. Menuntaskan integrasi dan verifikasi deployment worker sebelum user testing.</td>
 </tr>
@@ -288,3 +292,10 @@ Sebuah backlog fitur dianggap selesai (Done) secara vertikal apabila:
 > · Kode telah melewati pengujian manual menggunakan 3 sampel video webinar riil dari dataset uji tanpa crash.
 >
 > · Pull Request telah direview silang oleh setidaknya satu anggota tim lainnya dan disetujui masuk ke branch utama.
+
+**Kriteria penerimaan khusus fitur A:**
+
+- Login tanpa tujuan proyek membuka upload; link proyek yang dibuka setelah tab ditutup memuat progres atau hasil proyek milik pengguna. Jika login diperlukan, pengguna kembali ke proyek tujuan setelah berhasil masuk.
+- Akses proyek/klip pengguna lain ditolak, termasuk preview dan unduhan; link tidak valid ditangani tanpa membocorkan data. Alur utama berjalan tanpa dashboard atau daftar proyek.
+- Dengan waktu uji yang dikontrol, verifikasi batas kedaluwarsa sumber 24 jam setelah upload/upload ulang berhasil dan MP4/SRT 24 jam setelah render berhasil. Edit, polling, dan unduhan tidak memperpanjang retensi.
+- Pembersihan menghapus media kedaluwarsa dan mengosongkan path terkait, dengan metadata/transkrip tetap tersimpan. Media yang dipakai job aktif ditunda sampai job selesai; render ulang setelah sumber hilang meminta upload ulang sumber asli. Tidak ada tambahan masa retensi 7 hari.

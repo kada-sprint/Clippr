@@ -1,4 +1,4 @@
-# Backend Cuplik — H-01 Bagian A
+# Backend Cuplik — H-01/H-02 Bagian A
 
 Express + JavaScript/CommonJS, Prisma **6.19.3**, PostgreSQL Aiven, dan verifikasi Google ID token. Semua file konfigurasi aplikasi menggunakan JavaScript; schema dan migrasi mengikuti Prisma 6. Tidak menggunakan konfigurasi Prisma 7.
 
@@ -51,7 +51,19 @@ Isi `SESSION_SECRET` dengan minimal 32 karakter acak dari generator kriptografis
 
 `GET /api/auth/me` memakai identitas cookie, membaca profil terbaru melalui model Prisma, dan menolak sesi palsu/kedaluwarsa serta pengguna yang sudah dihapus. `POST /api/auth/logout` dengan JSON `{}` menghapus cookie browser dan idempoten. Semua POST autentikasi memerlukan `Origin` persis sama dengan `FRONTEND_ORIGIN`; CORS credentials hanya diizinkan untuk origin tersebut. Frontend menggunakan `credentials: 'include'`.
 
-Tidak ada tabel atau migrasi tambahan. Sesi bersifat stateless: logout menghapus cookie pada browser ini; salinan cookie yang dicuri masih berlaku sampai batas satu jam. Pencabutan seluruh sesi/perangkat membutuhkan penyimpanan sesi server sebagai pekerjaan terpisah. Di produksi wajib HTTPS; deployment di balik reverse proxy perlu konfigurasi trusted proxy yang sesuai topologi agar Express mengenali koneksi HTTPS, bukan kepercayaan proxy tanpa batas. Endpoint privat berikutnya harus memasang middleware sesi dan `requireAuth`, serta memeriksa pemilik resource di service/model; endpoint proyek/klip belum tersedia.
+Tidak ada tabel atau migrasi tambahan. Sesi bersifat stateless: logout menghapus cookie pada browser ini; salinan cookie yang dicuri masih berlaku sampai batas satu jam. Pencabutan seluruh sesi/perangkat membutuhkan penyimpanan sesi server sebagai pekerjaan terpisah. Di produksi wajib HTTPS; deployment di balik reverse proxy perlu konfigurasi trusted proxy yang sesuai topologi agar Express mengenali koneksi HTTPS, bukan kepercayaan proxy tanpa batas.
+
+## CRUD proyek H-02
+
+Endpoint `GET/POST /api/projects` dan `GET/PATCH/DELETE /api/projects/{id}` memakai
+cookie sesi serta selalu membatasi data berdasarkan pemilik. Respons tidak mengirim path
+media privat atau transkrip. Proyek baru berstatus `idle`/null; status pipeline yang
+didukung adalah `processing | idle | error` dengan tahap
+`ingest | transcribe | analyze | render | null`.
+
+Upload milik B berada pada `POST /api/projects/{id}/source` dan memperbarui proyek yang
+sudah dibuat, bukan membuat proyek baru. Implementasi upload/FFmpeg/ASR masih perlu
+dipindahkan ke queue/worker bersama B/C sebelum pipeline dinyatakan asinkron sepenuhnya.
 
 Frontend produk tersedia di `frontend/`, pada `http://localhost:5173/login`. Untuk tes Google nyata **tanpa perubahan database**, masih tersedia `npm run google:check`. Hentikan Vite sebelum memakai diagnostik pada port 5173. Script diagnostik memakai verifier service yang sama, tetapi hanya mengembalikan profil terverifikasi tanpa memanggil model/database. `/check-status` hanya mengembalikan jumlah verifikasi berhasil tanpa token/profil. Endpoint diagnostik tidak dipasang oleh `server.js`.
 

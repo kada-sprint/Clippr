@@ -7,22 +7,42 @@ function createProjectController({
   projectService = createProjectService(),
 } = {}) {
   return {
-    async upload(req, res, next) {
+    async list(req, res, next) {
       try {
-        // Ambil ID pengguna dari session cookie (jika login), atau dari body (fleksibel untuk pengujian)
-        const userId = req.session?.userId || req.userId || req.body?.user_id;
-
-        const project = await projectService.handleVideoUpload({
-          file: req.file,
-          selectedLayout: req.body?.selected_layout,
-          customVocabulary: req.body?.custom_vocabulary,
-          userId,
-        });
-
-        res.status(201).json({
-          message: 'Video berhasil diunggah dan ditranskripsi.',
-          project,
-        });
+        const projects = await projectService.list(req.userId);
+        res.json({ projects });
+      } catch (error) {
+        next(error);
+      }
+    },
+    async create(req, res, next) {
+      try {
+        const project = await projectService.create(req.userId, req.body);
+        res.status(201).json({ project });
+      } catch (error) {
+        next(error);
+      }
+    },
+    async get(req, res, next) {
+      try {
+        const project = await projectService.get(req.userId, req.params.id);
+        res.json({ project });
+      } catch (error) {
+        next(error);
+      }
+    },
+    async update(req, res, next) {
+      try {
+        const project = await projectService.update(req.userId, req.params.id, req.body);
+        res.json({ project });
+      } catch (error) {
+        next(error);
+      }
+    },
+    async remove(req, res, next) {
+      try {
+        await projectService.remove(req.userId, req.params.id);
+        res.status(204).end();
       } catch (error) {
         next(error);
       }

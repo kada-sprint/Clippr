@@ -1,8 +1,9 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthProvider.jsx';
 
 export default function RequireSession() {
   const { user, loading, sessionError, refreshSession } = useAuth();
+  const location = useLocation();
 
   if (loading || sessionError) {
     return (
@@ -18,5 +19,5 @@ export default function RequireSession() {
     );
   }
 
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+  return user ? <Outlet /> : <Navigate to="/login" state={{ from: location }} replace />;
 }
