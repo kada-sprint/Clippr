@@ -1,13 +1,42 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import VideoPicker from './components/VideoPicker.jsx';
 import VocabularyInput from './components/VocabularyInput.jsx';
 import LayoutSelector from './components/LayoutSelector.jsx';
+import { uploadVideoProject } from './ingestion.api.js';
 import './ingestion.css';
 
 export default function UploadPage() {
+  const navigate = useNavigate();
+  const [file, setFile] = useState(null);
+  const [terms, setTerms] = useState([]);
   const [layout, setLayout] = useState('slide_speaker');
   const [subtitleStyle, setSubtitleStyle] = useState('clean');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  async function handleSubmit(event) {
+    if (event) event.preventDefault();
+    if (!file || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const project = await uploadVideoProject({
+        file,
+        layout,
+        vocabulary: terms,
+      });
+
+      navigate('/queue', { state: { project } });
+    } catch (error) {
+      setErrorMessage(error.message || 'Gagal mengunggah dan memproses video.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="upload-page">
@@ -17,8 +46,8 @@ export default function UploadPage() {
         <p>Siapkan rekaman Anda untuk cuplikan edukasi vertikal 9:16 dengan konsep yang tetap utuh.</p>
         <div className="upload-highlights"><span>Pembuka yang kontekstual</span><i>·</i><span>Penjelasan yang lengkap</span><i>·</i><span>Kesimpulan mandiri</span></div>
       </header>
-      <VideoPicker />
-      <VocabularyInput />
+      <VideoPicker file={file} onFileChange={setFile} />
+      <VocabularyInput value={terms} onChange={setTerms} />
       <LayoutSelector value={layout} onChange={setLayout} subtitleStyle={subtitleStyle} />
       <section className="upload-settings" aria-label="Pengaturan hasil cuplikan">
         <div className="subtitle-setting">
@@ -42,8 +71,28 @@ export default function UploadPage() {
         </div>
       </section>
       <div className="upload-submit">
-        <button type="button" className="button primary" disabled aria-describedby="upload-availability"><Icon name="video" size={19} /> Mulai Proses <span>3–5 KLIP</span></button>
-        <p id="upload-availability">Pengiriman video belum tersedia. Anda bisa menyiapkan pilihan file dan tampilan terlebih dahulu.</p>
+        {errorMessage && (
+          <p className="ingestion-error" role="alert" style={{ marginBottom: '18px' }}>
+            {errorMessage}
+          </p>
+        )}
+        <button
+          type="button"
+          className="button primary"
+          disabled={!file || isSubmitting}
+          onClick={handleSubmit}
+          aria-describedby="upload-availability"
+        >
+          <Icon name={isSubmitting ? 'clock' : 'video'} size={19} />
+          {isSubmitting ? 'Memproses Video & Transkripsi…' : 'Mulai Proses'} <span>3–5 KLIP</span>
+        </button>
+        <p id="upload-availability">
+          {isSubmitting
+            ? 'Sedang mengunggah, mengekstrak audio, dan mentranskripsi dengan STT Whisper. Mohon tunggu beberapa saat…'
+            : (file
+                ? `Video "${file.name}" siap diproses. Klik Mulai Proses untuk memulai ekstraksi dan transkripsi.`
+                : 'Pilih file video MP4 atau MOV di atas untuk memulai pemrosesan.')}
+        </p>
         <small>Pilihan hanya tersimpan selama halaman ini terbuka.</small>
       </div>
     </div>

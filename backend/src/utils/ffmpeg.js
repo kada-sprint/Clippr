@@ -12,18 +12,36 @@ if (!fs.existsSync(AUDIO_DIR)) {
   fs.mkdirSync(AUDIO_DIR, { recursive: true });
 }
 
-// Deteksi binary ffmpeg: utamakan variabel environment FFMPEG_PATH atau package installer jika ada
-if (process.env.FFMPEG_PATH) {
-  ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH);
-} else {
+// Konfigurasi binary FFmpeg:
+// 1. Utamakan variabel environment FFMPEG_PATH jika ditentukan
+// 2. Gunakan package ffmpeg-static yang menyediakan binary standalone otomatis
+// 3. Fallback ke @ffmpeg-installer/ffmpeg jika tersedia
+let ffmpegBinaryPath = process.env.FFMPEG_PATH || null;
+
+if (!ffmpegBinaryPath) {
+  try {
+    const ffmpegStatic = require('ffmpeg-static');
+    if (ffmpegStatic) {
+      ffmpegBinaryPath = ffmpegStatic;
+    }
+  } catch {
+    // ffmpeg-static belum terpasang atau belum di-resolve
+  }
+}
+
+if (!ffmpegBinaryPath) {
   try {
     const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
     if (ffmpegInstaller?.path) {
-      ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+      ffmpegBinaryPath = ffmpegInstaller.path;
     }
   } catch {
-    // Jika package installer tidak ada, gunakan binary ffmpeg default dari sistem (PATH)
+    // @ffmpeg-installer tidak tersedia
   }
+}
+
+if (ffmpegBinaryPath) {
+  ffmpeg.setFfmpegPath(ffmpegBinaryPath);
 }
 
 /**
@@ -35,6 +53,10 @@ function extractAudio(inputVideoPath) {
   return new Promise((resolve, reject) => {
     if (!inputVideoPath || typeof inputVideoPath !== 'string') {
       return reject(new AppError(400, 'INVALID_INPUT', 'Path video input tidak valid.'));
+    }
+
+    if (!fs.existsSync(inputVideoPath)) {
+      return reject(new AppError(404, 'FILE_NOT_FOUND', `File video input tidak ditemukan di path: ${inputVideoPath}`));
     }
 
     // Buat nama file audio unik
@@ -54,8 +76,25 @@ function extractAudio(inputVideoPath) {
         resolve(outputPath.replaceAll('\\', '/'));
       })
       .on('error', (err) => {
-        // Tangkap error jika ffmpeg gagal memproses
-        reject(new AppError(500, 'AUDIO_EXTRACTION_FAILED', `Gagal mengekstrak audio: ${err.message}`));
+        // Hapus file audio parsial jika sempat dibuat tapi gagal
+        if (fs.existsSync(outputPath)) {
+          try {
+            fs.unlinkSync(outputPath);
+          } catch {
+            // Abaikan jika gagal menghapus file parsial
+          }
+        }
+
+        const isMissingBinary = err.message && (
+          err.message.includes('Cannot find ffmpeg') ||
+          err.message.includes('spawn ffmpeg ENOENT')
+        );
+
+        const detailMessage = isMissingBinary
+          ? 'Binary FFmpeg tidak ditemukan pada server. Pastikan modul ffmpeg-static terpasang ("npm install ffmpeg-static" di folder backend) atau tentukan FFMPEG_PATH di .env.'
+          : `Gagal mengekstrak audio: ${err.message}`;
+
+        reject(new AppError(500, 'AUDIO_EXTRACTION_FAILED', detailMessage));
       })
       .run();
   });

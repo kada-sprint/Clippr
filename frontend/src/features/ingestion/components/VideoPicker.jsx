@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from '../../../components/Icon.jsx';
 
-export default function VideoPicker() {
+export default function VideoPicker({ file: controlledFile, onFileChange }) {
   const inputRef = useRef(null);
   const dragDepth = useRef(0);
   const [dragging, setDragging] = useState(false);
-  const [file, setFile] = useState(null);
+  const [internalFile, setInternalFile] = useState(null);
+  const file = controlledFile !== undefined ? controlledFile : internalFile;
   const [metadata, setMetadata] = useState(null);
   const [error, setError] = useState('');
+
+  function updateFile(newFile) {
+    setInternalFile(newFile);
+    if (onFileChange) onFileChange(newFile);
+  }
 
   function selectFiles(files) {
     if (!files.length) return;
@@ -19,7 +25,7 @@ export default function VideoPicker() {
     else if (selected.size > 1_000_000_000) message = 'Ukuran video melebihi batas 1 GB.';
     setError(message);
     setMetadata(null);
-    setFile(message ? null : selected);
+    updateFile(message ? null : selected);
   }
 
   useEffect(() => {
@@ -35,7 +41,7 @@ export default function VideoPicker() {
       if (!active) return;
       clearTimeout(timeout);
       if (Number.isFinite(video.duration) && video.duration > 2700) {
-        setFile(null);
+        updateFile(null);
         setMetadata(null);
         setError('Durasi video melebihi batas 45 menit. Pilih rekaman yang lebih pendek.');
         return;
@@ -59,7 +65,7 @@ export default function VideoPicker() {
   }, [file]);
 
   function removeFile() {
-    setFile(null);
+    updateFile(null);
     setMetadata(null);
     setError('');
   }
