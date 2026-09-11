@@ -6,7 +6,7 @@ import LayoutSelector from './components/LayoutSelector.jsx';
 import './ingestion.css';
 
 export default function UploadPage() {
-  const [layout, setLayout] = useState('slide_speaker');
+  const [layout, setLayout] = useState('slide-cam');
   const [subtitleStyle, setSubtitleStyle] = useState('clean');
 
   return (

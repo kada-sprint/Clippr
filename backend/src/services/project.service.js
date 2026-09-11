@@ -1,7 +1,7 @@
 const AppError = require('../utils/app-error');
 const projectModel = require('../models/project.model');
 
-const ALLOWED_LAYOUTS = Object.freeze(['SLIDE_CAM', 'TALKING_HEAD', 'SLIDE_ONLY']);
+const ALLOWED_LAYOUTS = Object.freeze(['slide-cam', 'talking-head', 'slide-only']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function validateProjectId(projectId) {

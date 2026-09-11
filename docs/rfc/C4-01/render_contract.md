@@ -10,11 +10,13 @@ Shared render interface that all three template implementations (Batch 2) build 
  * @param {number} startTime - Start time in seconds (inclusive)
  * @param {number} endTime - End time in seconds (exclusive)
  * @param {string} outputPath - Full path including filename for the output file
+ * @param {string} template - Required: 'slide-cam' | 'talking-head' | 'slide-only'
  * @param {object} [options={}]
  * @param {number} [options.timeoutMs] - Override the default 60s timeout
+ * @param {number} [options.horizontalOffset] - Template B only: normalized 0–1, positive = right, default 0
  * @returns {Promise<RenderResult>}
  */
-async function reframe(inputPath, startTime, endTime, outputPath, options = {}) { ... }
+async function renderClip(inputPath, startTime, endTime, outputPath, template, options = {}) { ... }
 ```
 
 ## RenderResult
@@ -39,7 +41,7 @@ All templates produce:
 
 ## Trimming
 
-Trimming (`startTime`/`endTime`) is applied before any template-specific reframing. The function handles trimming internally — callers do not need a separate trim step.
+Trimming (`startTime`/`endTime`) is applied as output-side options via `applyTrim(command, startTime, endTime)` in `reframeCommon.js`. Output-side is frame-accurate; input-side seeks to nearest keyframe only. Frame accuracy is required because H-5 subtitle sync depends on exact clip boundaries.
 
 ## Timeout
 
@@ -50,6 +52,7 @@ Default timeout: 60 seconds (constant `DEFAULT_TIMEOUT_MS`). Overridable per-cal
 - **Input validation failure**: resolves with `success: false` and a descriptive error string (e.g., `"Input file not found: {path}"`)
 - **FFmpeg crash/error**: resolves with `success: false` and the truncated FFmpeg stderr as the error string
 - **Timeout**: resolves with `success: false, error: "timeout"`
+- **Unknown template**: resolves with `success: false, error: "Unknown template: {template}"`
 
 ## Output Path Convention
 
@@ -58,30 +61,35 @@ Default timeout: 60 seconds (constant `DEFAULT_TIMEOUT_MS`). Overridable per-cal
 {project_id}/{clip_id}/subtitles.srt   — SRT file (H-5, path planned here for consistency)
 ```
 
-The caller constructs the full path. `reframe` ensures the output directory exists.
+The caller constructs the full path. `renderClip` ensures the output directory exists.
 
 ## Camera-Box Assumption (Template A)
 
 Template A (Slide+Cam) places the camera box at a fixed position. This is an **assumption**, not a guarantee — face/screen detection is explicitly out of scope per the FRD risk table.
 
 ```js
-const CAMERA_BOX_POSITION = 'bottom-right';
-const CAMERA_BOX_COORDS = { x: 70, y: 60, width: 25, height: 35 }; // percentages
+const CAMERA_BOX_POSITION = { x: 0.85, y: 0.05, w: 0.15, h: 0.15 };
 ```
 
-These are named constants, overridable at module level before deployment. They are not per-call options.
+Normalized 0–1, origin top-left, fraction of source frame. This is a module-level constant in `reframeCommon.js`, not a per-call option. Template A imports it directly. See `docs/adr/0006-camera-band-tradeoff.md` for the trade-off this introduces.
 
 ## Module Exports
 
 ```js
-module.exports = { reframe, DEFAULT_TIMEOUT_MS, CAMERA_BOX_POSITION, CAMERA_BOX_COORDS };
+module.exports = { renderClip, applyTrim, DEFAULT_TIMEOUT_MS, CAMERA_BOX_POSITION };
 ```
 
-Direct export (not a factory function) — `reframe` has no injected dependencies.
+Direct export (not a factory function) — `renderClip` has no injected dependencies.
+
+## Template Selection
+
+`template` is a required positional parameter. Unrecognized or missing values resolve with `success: false` — no silent fallback. Accepted values match the `ALLOWED_LAYOUTS` enum in `project.service.js`: `'slide-cam'`, `'talking-head'`, `'slide-only'`.
 
 ## Batch 2 Usage
 
 Templates B (Talking-Head) and C (Slide Saja) use `fluent-ffmpeg`'s standard chainable methods. Template A (Slide+Cam) uses `.complexFilter()` with raw filter-graph syntax for overlay compositing. All three use the same library, different features.
+
+Workers call `renderClip()` — they never import template files directly. Templates are internal implementation details dispatched by `renderClip()`.
 
 ## What This Does Not Cover
 
