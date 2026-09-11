@@ -28,11 +28,24 @@ function validateAndFormatVocabulary(rawVocabulary) {
   return terms.join(', ');
 }
 
+const LAYOUT_MAP = Object.freeze({
+  slide_speaker: 'SLIDE_CAM',
+  speaker: 'TALKING_HEAD',
+  slides: 'SLIDE_ONLY',
+  SLIDE_CAM: 'SLIDE_CAM',
+  TALKING_HEAD: 'TALKING_HEAD',
+  SLIDE_ONLY: 'SLIDE_ONLY',
+});
+
 function validateLayout(layout) {
-  if (typeof layout !== 'string' || !ALLOWED_LAYOUTS.includes(layout)) {
+  if (typeof layout !== 'string') {
     throw new AppError(400, 'INVALID_LAYOUT', 'Layout yang dipilih tidak didukung.');
   }
-  return layout;
+  const normalized = LAYOUT_MAP[layout] || layout;
+  if (!ALLOWED_LAYOUTS.includes(normalized)) {
+    throw new AppError(400, 'INVALID_LAYOUT', 'Layout yang dipilih tidak didukung.');
+  }
+  return normalized;
 }
 
 function toSummary(project) {

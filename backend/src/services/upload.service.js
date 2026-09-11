@@ -14,6 +14,7 @@ function toPublicProject(project) {
     customVocabulary: project.customVocabulary,
     hasSource: Boolean(project.sourceVideoPath),
     clipCount: project._count?.clips ?? 0,
+    transcriptJson: project.transcriptJson,
     lastEditActivityAt: project.lastEditActivityAt,
     sourceExpiresAt: project.sourceExpiresAt,
     createdAt: project.createdAt,
@@ -74,6 +75,18 @@ function createUploadService({
       } finally {
         if (audioPath) await removeFile(audioPath);
       }
+    },
+
+    async directUpload({ userId, file, selectedLayout, customVocabulary }) {
+      const projectModel = require('../models/project.model');
+      const project = await projectModel.createForUser(userId);
+      return this.uploadSource({
+        projectId: project.id,
+        userId,
+        file,
+        selectedLayout,
+        customVocabulary,
+      });
     },
   };
 }

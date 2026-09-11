@@ -8,6 +8,7 @@ const uploadProjectSelect = {
   customVocabulary: true,
   status: true,
   processingStage: true,
+  transcriptJson: true,
   lastEditActivityAt: true,
   sourceExpiresAt: true,
   createdAt: true,
@@ -51,7 +52,7 @@ async function markTranscribing(id, userId) {
 async function saveTranscript(id, userId, transcriptJson) {
   return getPrisma().project.update({
     where: { id, userId },
-    data: { status: 'processing', processingStage: 'analyze', transcriptJson },
+    data: { status: 'TRANSCRIBED', processingStage: 'transcribe', transcriptJson },
     select: uploadProjectSelect,
   });
 }
