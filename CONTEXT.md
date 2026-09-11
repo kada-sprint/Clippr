@@ -63,3 +63,7 @@ _Avoid_: Cost estimate, API cost
 **Adaptive Top-N**:
 Post-curation selection strategy that sorts clips by concept_score descending and returns the top N (default 5), without a minimum score threshold. Ensures clips are always returned for non-empty transcripts.
 _Avoid_: Score filtering, quality gate
+
+**Worker**:
+A Node.js process that consumes jobs from BullMQ queues and executes heavy tasks (FFmpeg, ASR, LLM) outside the Express HTTP thread. Each worker process has its own Prisma Client instance. Workers never share state with the API server.
+_Avoid_: processor, job handler, background task
