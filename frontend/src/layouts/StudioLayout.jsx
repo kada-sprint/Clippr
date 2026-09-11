@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
 import { useAuth } from '../features/auth/AuthProvider.jsx';
 import './studio.css';
@@ -16,6 +16,9 @@ export default function StudioLayout() {
   const sidebarRef = useRef(null);
   const closeButton = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const projectSearch = ['/queue', '/editor'].includes(location.pathname)
+    && new URLSearchParams(location.search).has('projectId') ? location.search : '';
 
   function closeSidebar() {
     setSidebarOpen(false);
@@ -89,8 +92,8 @@ export default function StudioLayout() {
         </div>
         <nav aria-label="Navigasi studio">
           <NavLink to="/upload" end onClick={closeSidebar}><Icon name="upload" size={19} />Unggah Video</NavLink>
-          <NavLink to="/queue" end onClick={closeSidebar}><Icon name="clock" size={19} />Status Antrean</NavLink>
-          <NavLink to="/editor" end onClick={closeSidebar}><Icon name="edit" size={19} />Review & Editor</NavLink>
+          <NavLink to={`/queue${projectSearch}`} end onClick={closeSidebar}><Icon name="clock" size={19} />Status Antrean</NavLink>
+          <NavLink to={`/editor${projectSearch}`} end onClick={closeSidebar}><Icon name="edit" size={19} />Review & Editor</NavLink>
         </nav>
         <div className="studio-sidebar-note"><Icon name="layers" size={20} /><strong>Satu konsep, satu cuplikan.</strong><p>Jaga pengetahuan tetap utuh, dalam format yang mudah dibagikan.</p></div>
         <div className="studio-account" ref={accountRef}>
