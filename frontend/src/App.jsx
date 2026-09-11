@@ -6,6 +6,7 @@ import StudioLayout from './layouts/StudioLayout.jsx';
 import UploadPage from './features/ingestion/UploadPage.jsx';
 import QueuePage from './features/ingestion/QueuePage.jsx';
 import EditorPage from './features/clips/EditorPage.jsx';
+import ProjectAccess from './features/projects/ProjectAccess.jsx';
 
 export default function App() {
   return (
@@ -15,8 +16,8 @@ export default function App() {
       <Route element={<RequireSession />}>
         <Route element={<StudioLayout />}>
           <Route path="/upload" element={<UploadPage />} />
-          <Route path="/queue" element={<QueuePage />} />
-          <Route path="/editor" element={<EditorPage />} />
+          <Route path="/queue" element={<ProjectAccess><QueuePage /></ProjectAccess>} />
+          <Route path="/editor" element={<ProjectAccess><EditorPage /></ProjectAccess>} />
         </Route>
       </Route>
       <Route path="*" element={
