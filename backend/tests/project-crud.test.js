@@ -1,5 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const Keygrip = require('keygrip');
 const { createApp } = require('../src/app');
 const { createProjectService } = require('../src/services/project.service');
 
@@ -136,7 +137,7 @@ test('project lists are isolated by session owner and never expose media paths',
     id: '22222222-2222-4222-8222-222222222222',
     userId: otherUser.id,
     sourceVideoPath: 'private/other/video.mp4',
-    selectedLayout: 'SLIDE_CAM',
+    selectedLayout: 'slide-cam',
     customVocabulary: 'rahasia',
     status: 'processing',
     processingStage: 'ingest',
@@ -182,7 +183,7 @@ test('project detail requires a session and hides projects owned by another user
     id: projectId,
     userId: user.id,
     sourceVideoPath: 'private/owner/video.mp4',
-    selectedLayout: 'SLIDE_CAM',
+    selectedLayout: 'slide-cam',
     customVocabulary: 'Prisma, BullMQ',
     status: 'processing',
     processingStage: 'transcribe',
@@ -210,7 +211,7 @@ test('project detail requires a session and hides projects owned by another user
       id: projectId,
       status: 'processing',
       processingStage: 'transcribe',
-      selectedLayout: 'SLIDE_CAM',
+      selectedLayout: 'slide-cam',
       customVocabulary: 'Prisma, BullMQ',
       hasSource: true,
       clipCount: 2,
@@ -236,7 +237,7 @@ test('an owner can update layout and a normalized unique vocabulary while a proj
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Origin: origin, Cookie: cookie },
     body: JSON.stringify({
-      selectedLayout: 'SLIDE_CAM',
+      selectedLayout: 'slide-cam',
       customVocabulary: ' Prisma, BullMQ, prisma,  Express ',
     }),
   });
@@ -244,7 +245,7 @@ test('an owner can update layout and a normalized unique vocabulary while a proj
   assert.equal(updated.status, 200);
   assert.deepEqual((await updated.json()).project, {
     ...project,
-    selectedLayout: 'SLIDE_CAM',
+    selectedLayout: 'slide-cam',
     customVocabulary: 'Prisma, BullMQ, Express',
     lastEditActivityAt: null,
     sourceExpiresAt: null,
@@ -257,7 +258,7 @@ test('an owner can delete only an empty project', async (t) => {
     id: busyId,
     userId: user.id,
     sourceVideoPath: 'private/source.mp4',
-    selectedLayout: 'SLIDE_ONLY',
+    selectedLayout: 'slide-only',
     customVocabulary: '',
     status: 'processing',
     processingStage: 'ingest',
@@ -299,7 +300,7 @@ test('project mutations reject invalid input, unsafe state, and untrusted reques
     id: busyId,
     userId: user.id,
     sourceVideoPath: 'private/source.mp4',
-    selectedLayout: 'SLIDE_CAM',
+    selectedLayout: 'slide-cam',
     customVocabulary: '',
     status: 'processing',
     processingStage: 'ingest',
@@ -349,7 +350,7 @@ test('project mutations reject invalid input, unsafe state, and untrusted reques
   const busyUpdate = await fetch(`${baseUrl}/projects/${busyId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Origin: origin, Cookie: cookie },
-    body: JSON.stringify({ selectedLayout: 'SLIDE_ONLY' }),
+    body: JSON.stringify({ selectedLayout: 'slide-only' }),
   });
   assert.equal(busyUpdate.status, 409);
   assert.equal((await busyUpdate.json()).error.code, 'PROJECT_NOT_EDITABLE');
@@ -408,4 +409,70 @@ test('a malformed project id is rejected before database access', async (t) => {
   const response = await fetch(`${baseUrl}/projects/not-a-uuid`, { headers: { Cookie: cookie } });
   assert.equal(response.status, 400);
   assert.equal((await response.json()).error.code, 'INVALID_PROJECT_ID');
+});
+
+test('all project endpoints reject absent, forged, and expired sessions before business logic', async (t) => {
+  const rejectCall = async () => assert.fail('must not reach project business logic');
+  const baseUrl = await serve(t, { list: rejectCall, create: rejectCall, get: rejectCall, update: rejectCall, remove: rejectCall });
+  const id = '77777777-7777-4777-8777-777777777777';
+  const value = Buffer.from(JSON.stringify({ userId: user.id, expiresAt: Date.now() - 1 })).toString('base64');
+  const session = `clippr_session=${value}`;
+  const expired = `${session}; clippr_session.sig=${new Keygrip([sessionSecret]).sign(session)}`;
+  for (const cookie of ['', `${session}; clippr_session.sig=forged`, expired]) {
+    for (const [method, route, body] of [
+      ['GET', '/projects'], ['POST', '/projects', '{}'], ['GET', `/projects/${id}`],
+      ['PATCH', `/projects/${id}`, '{"selectedLayout":"slide-cam"}'],
+      ['DELETE', `/projects/${id}`], ['POST', `/projects/${id}/source`],
+    ]) {
+      const response = await fetch(`${baseUrl}${route}`, {
+        method, headers: { Cookie: cookie, Origin: origin, 'Content-Type': 'application/json' }, body,
+      });
+      assert.equal(response.status, 401, `${method} ${route}`);
+      assert.equal((await response.json()).error.code, 'UNAUTHENTICATED');
+    }
+  }
+});
+
+test('another user cannot read, update, or delete an owned project; missing projects look identical', async (t) => {
+  const repository = createMemoryRepository();
+  const owned = await repository.createForUser(user.id);
+  const before = structuredClone(owned);
+  const baseUrl = await serve(t, createProjectService({ projectRepository: repository }));
+  const cookie = await login(baseUrl, 'other-verified');
+  for (const method of ['GET', 'PATCH', 'DELETE']) {
+    const responses = [];
+    for (const id of [owned.id, '88888888-8888-4888-8888-888888888888']) {
+      const response = await fetch(`${baseUrl}/projects/${id}`, {
+        method, headers: { Cookie: cookie, Origin: origin, 'Content-Type': 'application/json' },
+        body: method === 'PATCH' ? JSON.stringify({ selectedLayout: 'talking-head' }) : undefined,
+      });
+      assert.equal(response.status, 404);
+      responses.push(await response.json());
+    }
+    assert.deepEqual(responses[0], responses[1]);
+    assert.equal(responses[0].error.code, 'PROJECT_NOT_FOUND');
+  }
+  assert.deepEqual(await repository.findByIdForUser(owned.id, user.id), before);
+});
+
+test('repeated project reads preserve expiry, edit activity, source and transcript', async (t) => {
+  const repository = createMemoryRepository();
+  const owned = await repository.createForUser(user.id);
+  Object.assign(owned, {
+    sourceVideoPath: 'private/source.mp4', transcriptJson: [{ word: 'Halo', start_time: 0, end_time: 1, confidence: 1 }],
+    sourceExpiresAt: new Date('2026-09-14T00:00:00Z'), lastEditActivityAt: new Date('2026-09-13T00:00:00Z'),
+  });
+  const before = structuredClone(owned);
+  const baseUrl = await serve(t, createProjectService({ projectRepository: repository }));
+  const cookie = await login(baseUrl);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(`${baseUrl}/projects/${owned.id}`, { headers: { Cookie: cookie } });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.headers.get('set-cookie'), null);
+    const payload = await response.json();
+    assert.equal(payload.project.sourceExpiresAt, before.sourceExpiresAt.toISOString());
+    assert.doesNotMatch(JSON.stringify(payload), /private\/source|transcriptJson/);
+  }
+  assert.deepEqual(await repository.findByIdForUser(owned.id, user.id), before);
 });
