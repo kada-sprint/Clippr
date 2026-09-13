@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const fs = require('node:fs');
 const { renderClip } = require('../src/services/reframeCommon');
+const { getVideoMetadata } = require('../src/utils/ffprobeUtils');
 
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 const OUTPUT_DIR = path.join(__dirname, 'tmp');
@@ -16,6 +17,10 @@ const SAMPLE_VIDEOS = {
 };
 
 const TEST_DURATION = 5; // seconds to render in smoke test
+const DURATION_TOLERANCE = 0.1; // seconds — max acceptable drift from requested duration
+
+// Collected metadata from per-template renders, used by cross-template consistency checks.
+const renderedMetadata = {};
 
 describe('renderClip smoke tests', () => {
   before(() => {
@@ -47,9 +52,8 @@ describe('renderClip smoke tests', () => {
       assert.equal(result.duration, TEST_DURATION);
       assert.ok(fs.existsSync(outputPath), 'Output file should exist');
 
-      // Visual quality check: open the output file and verify manually
-      // that slide content is legible, camera is visible (if applicable),
-      // and there are no encoding artifacts.
+      // Collect metadata for cross-template consistency checks
+      renderedMetadata[template] = await getVideoMetadata(outputPath);
     });
   }
 
@@ -79,5 +83,44 @@ describe('renderClip smoke tests', () => {
     const result = await renderClip('/nonexistent.mp4', 0, 5, '/tmp/out.mp4', 'slide-only');
     assert.equal(result.success, false);
     assert.match(result.error, /Input file not found/);
+  });
+});
+
+describe('cross-template consistency', () => {
+  const templates = Object.keys(SAMPLE_VIDEOS);
+  const rendered = templates.filter((t) => renderedMetadata[t]);
+
+  // Skip entire block if no templates were rendered (all fixtures missing)
+  it('all three templates produce spec-consistent output', () => {
+    if (rendered.length < 3) {
+      console.log('  SKIP: not all fixture videos present — cannot run consistency checks');
+      return;
+    }
+
+    const meta = rendered.map((t) => ({ template: t, ...renderedMetadata[t] }));
+
+    // 1. Identical resolution: 1080×1920
+    for (const m of meta) {
+      assert.equal(m.width, 1080, `${m.template}: width should be 1080, got ${m.width}`);
+      assert.equal(m.height, 1920, `${m.template}: height should be 1920, got ${m.height}`);
+    }
+
+    // 2. Identical codec: h264
+    const codecs = [...new Set(meta.map((m) => m.codec))];
+    assert.equal(codecs.length, 1, `All templates should use h264 codec, got: ${codecs.join(', ')}`);
+    assert.equal(codecs[0], 'h264', `Expected h264 codec, got ${codecs[0]}`);
+
+    // 3. Identical container format
+    const containers = [...new Set(meta.map((m) => m.container))];
+    assert.equal(containers.length, 1, `All templates should produce same container, got: ${containers.join(', ')}`);
+
+    // 4. Duration drift within tolerance
+    for (const m of meta) {
+      const drift = Math.abs(m.duration - TEST_DURATION);
+      assert.ok(
+        drift <= DURATION_TOLERANCE,
+        `${m.template}: duration drift ${drift.toFixed(3)}s exceeds tolerance ${DURATION_TOLERANCE}s (got ${m.duration}s, expected ${TEST_DURATION}s)`
+      );
+    }
   });
 });
