@@ -24,7 +24,8 @@ export async function uploadVideoProject({ file, layout, vocabulary, signal }) {
   formData.append('custom_vocabulary', formattedVocab);
 
   // Batas waktu timeout 5 menit untuk mengakomodasi upload video + FFmpeg + STT Whisper
-  const timeout = AbortSignal.timeout(300000);
+  // Sementara batas waktu timeout dinaikkan ke 30 menit (1.800.000 ms) agar video lebih panjang tidak terputus
+  const timeout = AbortSignal.timeout(1800000);
   const combinedSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
 
   let response;
