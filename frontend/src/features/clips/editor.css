@@ -66,6 +66,18 @@
 .editor-panel-footer > span { font-size: 10px; color: #aab8ca; }
 .editor-render { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .editor-render p { font-size: 11px; color: #a6b6ca; }
+.editor-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 20px; text-align: center; color: #7a8a9e; }
+.editor-empty svg { color: #4a5a6e; }
+.editor-empty p { margin: 0; font-size: 13px; line-height: 1.6; }
+.editor-empty--error { color: #e57373; }
+.editor-empty--error svg { color: #e57373; }
+.clip-status-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+.clip-status--pending { background: #1e3a5f; color: #7ab8e0; }
+.clip-status--needs-review { background: #4a3a1e; color: #e0c87a; }
+.clip-status--rendering { background: #1e3a5f; color: #7ab8e0; animation: pulse 1.5s ease-in-out infinite; }
+.clip-status--rendered { background: #1e4a2a; color: #7ae08a; }
+.clip-status--error { background: #4a1e1e; color: #e07a7a; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @media (max-width: 1250px) { .editor-grid { grid-template-columns: 255px minmax(0, 1fr); gap: 18px; } .editor-time-grid { grid-template-columns: 1fr; } }
 @media (max-width: 1050px) { .editor-grid { grid-template-columns: 1fr; } .editor-library { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } .editor-library-heading { grid-column: 1 / -1; margin: 0; } .editor-clip { grid-template-columns: 1fr; margin: 0; padding: 12px; } .editor-thumbnail { display: none; } .editor-time-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .editor-page { padding: 22px 14px 45px; } .editor-library { grid-template-columns: 1fr; } .editor-clip { grid-template-columns: 55px minmax(0, 1fr); } .editor-thumbnail { display: grid; height: 96px; } .editor-time-grid { grid-template-columns: 1fr; } .editor-panel, .editor-preview { padding: 15px; } .editor-page-heading h1 { font-size: 26px; } }

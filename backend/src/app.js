@@ -6,6 +6,7 @@ const { createAuthService, createCurrentUserService } = require('./services/auth
 const { createAuthRoutes } = require('./routes/auth.routes');
 const { createProjectRoutes } = require('./routes/project.routes');
 const { createUploadRoutes } = require('./routes/upload.routes');
+const { createClipRoutes } = require('./routes/clip.routes');
 const errorHandler = require('./middlewares/error-handler');
 
 function createApp({
@@ -13,6 +14,7 @@ function createApp({
   getCurrentUser = createCurrentUserService(),
   projectService,
   uploadService,
+  clipService,
   sessionSecret = env.sessionSecret,
   frontendOrigin = env.frontendOrigin,
   production = env.production,
@@ -25,6 +27,7 @@ function createApp({
   app.use('/api/auth', createAuthRoutes({ authenticateGoogle, getCurrentUser, sessionSecret, frontendOrigin, production }));
   app.use('/api/projects', createProjectRoutes({ projectService, sessionSecret, frontendOrigin, production }));
   app.use('/api/projects', createUploadRoutes({ uploadService, sessionSecret, frontendOrigin, production }));
+  app.use('/api/projects', createClipRoutes({ clipService, sessionSecret, frontendOrigin, production }));
   app.use((req, res, next) => next(new AppError(404, 'ROUTE_NOT_FOUND', 'Endpoint tidak ditemukan.')));
   app.use(errorHandler);
   return app;

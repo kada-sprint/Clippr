@@ -67,3 +67,15 @@ _Avoid_: Score filtering, quality gate
 **Worker**:
 A Node.js process that consumes jobs from BullMQ queues and executes heavy tasks (FFmpeg, ASR, LLM) outside the Express HTTP thread. Each worker process has its own Prisma Client instance. Workers never share state with the API server.
 _Avoid_: processor, job handler, background task
+
+**Subtitle Burner**:
+A pure function that generates ASS subtitle files from clip-relative word-level timestamps and burns them onto a vertical video via FFmpeg. Produces a separate subtitled.mp4, preserving the raw vertical render.
+_Avoid_: Subtitle renderer, caption burner, ASS generator
+
+**Clip-Relative Timestamps**:
+Word-level start and end times rebased so 0 equals the clip's start. Used for subtitle generation (ASS/SRT) because subtitles are tied to the clip, not the source video.
+_Avoid_: Rebased timestamps, shifted timestamps, local timestamps
+
+**Safe Zone Margins**:
+Hardcoded percentage-based margins (10% top, 17.5% bottom, 10% sides) applied to ASS subtitle positioning to avoid overlap with TikTok/Reels UI elements on 9:16 vertical video.
+_Avoid_: Subtitle bounds, text margins
