@@ -1,4 +1,5 @@
 const { getPrisma } = require('../config/prisma');
+const { withProjectLock } = require('./project-lock');
 
 const uploadProjectSelect = {
   id: true,
@@ -23,22 +24,23 @@ async function findUploadTarget(id, userId) {
 }
 
 async function attachSource({ id, userId, sourceVideoPath, selectedLayout, customVocabulary }) {
-  const prisma = getPrisma();
-  const now = new Date();
-  const updated = await prisma.project.updateMany({
-    where: { id, userId, sourceVideoPath: null, status: 'idle', processingStage: null },
-    data: {
-      sourceVideoPath,
-      selectedLayout,
-      customVocabulary,
-      status: 'processing',
-      processingStage: 'ingest',
-      lastEditActivityAt: now,
-      sourceExpiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-    },
+  return withProjectLock(id, userId, async (prisma) => {
+    const now = new Date();
+    const updated = await prisma.project.updateMany({
+      where: { id, userId, sourceVideoPath: null, status: 'idle', processingStage: null },
+      data: {
+        sourceVideoPath,
+        selectedLayout,
+        customVocabulary,
+        status: 'processing',
+        processingStage: 'ingest',
+        lastEditActivityAt: now,
+        sourceExpiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      },
+    });
+    if (updated.count !== 1) return null;
+    return prisma.project.findFirst({ where: { id, userId }, select: uploadProjectSelect });
   });
-  if (updated.count !== 1) return null;
-  return findUploadTarget(id, userId);
 }
 
 async function markTranscribing(id, userId) {
@@ -66,10 +68,11 @@ async function saveTranscript(id, userId, transcriptJson) {
 }
 
 async function markFailed(id, userId, processingStage) {
-  return getPrisma().project.update({
-    where: { id, userId },
+  // Curation can report failure twice. A late callback must not revive a
+  // project whose deletion has already been admitted (or has finished).
+  return getPrisma().project.updateMany({
+    where: { id, userId, status: { not: 'deleting' } },
     data: { status: 'error', processingStage },
-    select: { id: true },
   });
 }
 

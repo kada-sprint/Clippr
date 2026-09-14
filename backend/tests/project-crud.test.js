@@ -4,6 +4,7 @@ const Keygrip = require('keygrip');
 const prismaModule = require('../src/config/prisma');
 const { createApp } = require('../src/app');
 const { createProjectService } = require('../src/services/project.service');
+const { isProjectBusy } = require('../src/utils/project-status');
 
 const origin = 'http://localhost:5173';
 const sessionSecret = 'a-test-only-session-secret-with-more-than-32-characters';
@@ -105,14 +106,12 @@ function createMemoryRepository(seed = []) {
       Object.assign(row, data);
       return { state: 'updated', project: row };
     },
-    async deleteIfEmpty(id, userId) {
+    async deleteIfInactive(id, userId, removeMedia) {
       const index = rows.findIndex((item) => item.id === id && item.userId === userId);
       if (index < 0) return { state: 'missing' };
       const row = rows[index];
-      if (row.status !== 'idle' || row.processingStage !== null ||
-          row.sourceVideoPath !== null || row.transcriptJson !== null || row._count.clips > 0) {
-        return { state: 'not_empty' };
-      }
+      if (isProjectBusy(row)) return { state: 'busy' };
+      await removeMedia({ ...row, clips: row.clips || [] });
       rows.splice(index, 1);
       return { state: 'deleted' };
     },
@@ -188,6 +187,7 @@ test('project lists are isolated by session owner and never expose media paths',
   const ownerResponse = await fetch(`${baseUrl}/projects`, { headers: { Cookie: ownerCookie } });
   assert.deepEqual((await ownerResponse.json()).projects, [{
     id: '00000000-0000-4000-8000-000000000002',
+    isBusy: false,
     status: 'idle',
     processingStage: null,
     selectedLayout: null,
@@ -236,6 +236,7 @@ test('project detail requires a session and hides projects owned by another user
   assert.deepEqual(await visible.json(), {
     project: {
       id: projectId,
+      isBusy: true,
       status: 'processing',
       processingStage: 'transcribe',
       selectedLayout: 'slide-cam',
@@ -279,7 +280,7 @@ test('an owner can update layout and a normalized unique vocabulary while a proj
   });
 });
 
-test('an owner can delete only an empty project', async (t) => {
+test('an owner can delete an empty project but cannot delete a processing project', async (t) => {
   const busyId = '44444444-4444-4444-8444-444444444444';
   const repository = createMemoryRepository([{
     id: busyId,
@@ -309,7 +310,7 @@ test('an owner can delete only an empty project', async (t) => {
     headers: { Origin: origin, Cookie: cookie },
   });
   assert.equal(blocked.status, 409);
-  assert.equal((await blocked.json()).error.code, 'PROJECT_NOT_EMPTY');
+  assert.equal((await blocked.json()).error.code, 'PROJECT_BUSY');
 
   const removed = await fetch(`${baseUrl}/projects/${emptyProject.id}`, {
     method: 'DELETE',

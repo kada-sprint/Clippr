@@ -249,19 +249,23 @@ paths:
         '503': { $ref: '#/components/responses/DatabaseUnavailable' }
     delete:
       operationId: deleteProject
-      summary: Hapus proyek kosong milik pengguna aktif
+      summary: Hapus proyek nonaktif beserta media, transkrip, klip, dan log LLM milik pengguna aktif
       security: [{ sessionCookie: [], sessionSignature: [] }]
       responses:
-        '204': { description: Proyek kosong dihapus }
+        '204': { description: Media dan seluruh data proyek berhasil dihapus permanen }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/OriginNotAllowed' }
         '404': { $ref: '#/components/responses/ProjectNotFound' }
         '409':
-          description: PROJECT_NOT_EMPTY
+          description: PROJECT_BUSY - pipeline atau render klip masih aktif
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
-        '503': { $ref: '#/components/responses/DatabaseUnavailable' }
+        '503':
+          description: DATABASE_UNAVAILABLE, UNSAFE_MEDIA_PATH, atau PROJECT_CLEANUP_FAILED. Jika pembersihan sebagian gagal, metadata dipertahankan untuk retry; sebagian media mungkin sudah terhapus.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 components:
   securitySchemes:
     sessionCookie:
@@ -283,17 +287,18 @@ components:
         avatarUrl: { type: string, nullable: true }
     ProjectStatus:
       type: string
-      enum: [idle, processing, error]
+      enum: [idle, processing, TRANSCRIBED, error, deleting]
+      description: deleting adalah penghapusan yang sudah dimulai; upload/render ditolak, DELETE dapat dicoba ulang tanpa migrasi schema.
     ProcessingStage:
       type: string
-      enum: [ingest, transcribe, analyze, render]
+      enum: [ingest, transcribe, analyze, curate, render]
       nullable: true
     ProjectLayout:
       type: string
       enum: [slide-cam, talking-head, slide-only]
     ProjectSummary:
       type: object
-      required: [id, status, processingStage, selectedLayout, hasSource, clipCount, createdAt]
+      required: [id, status, processingStage, selectedLayout, hasSource, clipCount, createdAt, isBusy]
       properties:
         id: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/ProjectStatus' }
@@ -302,6 +307,9 @@ components:
           allOf: [{ $ref: '#/components/schemas/ProjectLayout' }]
           nullable: true
         hasSource: { type: boolean }
+        isBusy:
+          type: boolean
+          description: True selama pipeline aktif (termasuk TRANSCRIBED), status belum dikenali, atau ada klip rendering/processing. False pada deleting agar DELETE bisa dicoba ulang. Backend memeriksa ulang saat DELETE dengan kunci transaksi yang sama dengan awal upload/render.
         clipCount: { type: integer, minimum: 0 }
         createdAt: { type: string, format: date-time }
     ProjectDetail:

@@ -98,22 +98,11 @@ function createClipService({
       validateClipId(clipId);
 
       try {
-        const clip = await clipRepository.findByIdWithOwnership(clipId, userId);
-        if (!clip) throw new AppError(404, 'CLIP_NOT_FOUND', 'Klip tidak ditemukan.');
-
-        if (clip.status === 'rendering') {
-          throw new AppError(409, 'ALREADY_RENDERING', 'Klip sedang dalam proses render.');
-        }
-
-        const project = await projectRepository.findByIdForUser(clip.project.id, userId);
-        if (!project || !project.sourceVideoPath) {
-          throw new AppError(400, 'SOURCE_MISSING', 'Sumber video tidak tersedia. Upload ulang diperlukan.');
-        }
-
-        await clipRepository.updateById(clipId, { status: 'rendering' });
+        const clip = await clipRepository.claimRender(clipId, userId);
+        const project = clip.project;
 
         const layout = project.selectedLayout || 'slide-cam';
-        const clipDir = path.join(project.id, clip.id);
+        const clipDir = path.resolve(__dirname, '../..', project.id, clip.id);
         const verticalPath = path.join(clipDir, 'vertical.mp4');
         const subtitledPath = path.join(clipDir, 'subtitled.mp4');
 

@@ -1,38 +1,30 @@
-# Akses proyek melalui link — fondasi A
+# My Project dan akses proyek melalui link
 
-Alur aplikasi tetap login → upload → progres → hasil/editor → ekspor, tanpa dashboard atau daftar proyek.
+Keputusan produk 14 September 2026: login biasa menuju **My Project** (`/projects`). Pengguna melihat proyek akun aktif terbaru dahulu, mengunggah video baru, membuka proyek lama, atau menghapus proyek nonaktif setelah konfirmasi.
 
-## Format link
+## Routing dan data
 
-- Progres: `/queue?projectId=<UUID proyek>`.
-- Hasil/editor: `/editor?projectId=<UUID proyek>`.
-- Gunakan ID proyek yang sudah tersimpan; membuka link tidak membuat proyek baru.
-- Parameter `projectId` wajib berisi satu UUID. Nilai kosong, rusak, atau berulang ditolak.
-- Login biasa menuju `/upload`. Link tujuan dipertahankan melalui state router saat login diperlukan, termasuk query dan hash.
-- Navigasi sidebar antara progres dan editor mempertahankan query proyek. Upload memulai alur baru tanpa membawa ID tersebut.
+- Progres: `/queue?projectId=<UUID>`; hasil/editor: `/editor?projectId=<UUID>`.
+- Pipeline aktif menuju progres. Proyek dengan klip menuju editor; proyek tanpa klip menuju progres.
+- Upload berhasil menyertakan ID pada URL. Progres mengambil metadata melalui `ProjectAccess` dan context, sehingga refresh tidak memerlukan state navigasi.
+- Login dari link kembali ke tujuan semula, termasuk query dan hash. Sidebar progres/editor mempertahankan ID proyek.
+- `GET /api/projects` dan `GET /api/projects/:id` menggunakan cookie sesi dan pemeriksaan kepemilikan backend. Daftar/detail menyertakan `isBusy`, tanpa path media privat atau transkrip sumber.
+- My Project dan metadata progres melakukan polling setiap 5 detik selama `isBusy`; berhenti setelah selesai, kegagalan request, atau unmount. Kegagalan menyediakan coba lagi. Editor tetap mengambil klip melalui integrasi yang tersedia.
+- ID tidak valid, proyek hilang, dan akun lain ditangani oleh pemeriksaan akses; 401 memeriksa sesi ulang. Link akses tidak menggantikan otorisasi preview/unduhan backend.
 
-## Perilaku saat ini
+## My Project dan hapus
 
-Routing milik A memanggil `GET /api/projects/:id` dengan cookie sesi. Backend memeriksa kepemilikan; proyek akun lain dan proyek tidak ditemukan menampilkan pesan yang sama. Respons 401 memicu pemeriksaan sesi ulang. Gangguan jaringan/server menyediakan tombol coba lagi.
+- Kartu: `Proyek <8 karakter ID>`, waktu dibuat, status/tahap, layout, jumlah klip. Grid desktop/tablet/mobile: 3/2/1 kolom.
+- Aksi satu baris: **Buka Proyek** dan ikon trash dengan rasio `3fr 1fr`, tinggi sama minimal 44 px. Tombol trash memiliki tooltip dan label aksesibel.
+- Pipeline aktif, transisi `TRANSCRIBED`, dan klip rendering/processing menonaktifkan hapus. Backend memeriksa ulang saat permintaan diterima.
+- Dialog menegaskan penghapusan permanen media, transkrip, klip, ekspor, serta log LLM. Batal mendapat fokus awal; Escape menutup sebelum penghapusan; fokus dikembalikan ke pemicu atau judul daftar jika kartu telah hilang.
+- Penghapusan, penerimaan sumber, dan awal render memakai row lock PostgreSQL per proyek. Status `deleting` disimpan sebelum menyentuh berkas agar kegagalan transaksi tidak membuka kembali upload/render. DELETE dapat dicoba ulang pada status ini.
+- Pembersihan hanya menyentuh berkas terkelola proyek, termasuk keluaran render gagal dan ASS sementara yang dikenali; tidak menghapus direktori secara rekursif. Path di luar penyimpanan atau melalui symlink ditolak.
+- Hapus relasi klip dan log LLM sebelum record proyek. Jika cleanup sebagian gagal, metadata dipertahankan untuk retry; media yang sudah hilang dianggap selesai. UI hanya menghilangkan kartu setelah 204; 404 memuat ulang daftar.
+- Retensi otomatis tetap 24 jam untuk sumber/ekspor sesuai waktu upload/render berhasil, dengan metadata/transkrip bertahan. Penghapusan manual eksplisit juga menghapus metadata/transkrip.
 
-Setelah akses berhasil, rute menampilkan status terakhir dari API, tombol muat ulang status, dan salin link. Progres rinci dan hasil editor belum terhubung. Data contoh editor tidak ditampilkan untuk link proyek. Metadata hanya dimuat saat dibuka atau dimuat ulang, belum ada polling progres.
+## Kepemilikan dan batas verifikasi
 
-Rute `/queue` dan `/editor` tanpa parameter tetap memakai tampilan lama milik B/C. Tampilan lama tersebut bukan bukti hasil proyek tersimpan.
+A memiliki My Project, autentikasi, akses proyek, dan penghapusan. Patch pendukung yang disetujui terbatas pada URL upload/pemulihan progres milik B dan pengaman awal render milik C. Tidak ada perombakan pipeline atau migrasi schema.
 
-## Serah terima B/C
-
-A memiliki pemeriksaan akses di `features/projects/ProjectAccess.jsx` dan routing bersama. B/C perlu menyepakati pemakaian format link ini sebelum mengintegrasikan halaman mereka. B menghubungkan link setelah proyek dibuat/upload; C menghubungkan hasil dan editor ke data klip nyata. Saat integrasi, ganti tampilan sementara setelah akses berhasil dengan halaman terkait. Pemeriksaan ini tidak menggantikan otorisasi backend pada setiap akses klip, preview, dan unduhan.
-
-## Pemeriksaan manual
-
-Gunakan `http://localhost:5173` dan ID proyek milik akun uji yang sudah ada.
-
-1. Buka link proyek saat sudah login, muat ulang halaman, lalu tutup tab dan buka kembali link tersimpan: proyek yang sama harus dimuat.
-2. Buka link ketika belum login: login harus kembali ke path, query, dan hash semula. Login tanpa tujuan tetap menuju upload.
-3. Buka proyek akun A dengan akun B serta UUID yang tidak ada: keduanya menampilkan “Proyek tidak tersedia” tanpa metadata.
-4. Coba `?projectId=`, `?projectId=rusak`, dan dua parameter `projectId`: tampilkan link tidak valid.
-5. Saat proyek terbuka, pindah progres/editor lewat sidebar: ID harus tetap ada dan data contoh tidak muncul.
-6. Simulasikan kegagalan request pada lingkungan uji, lalu coba lagi: data lama tidak boleh tetap terlihat. Sesi kedaluwarsa harus meminta login kembali ke tujuan semula.
-7. Salin link, lalu buka hasil salinannya. Jika clipboard ditolak, tampilkan petunjuk menyalin alamat browser.
-
-Tes backend dengan repository uji membuktikan kontrak autentikasi/kepemilikan; build frontend hanya membuktikan bundling. Google login, pembukaan ulang tab, dan akses dua akun nyata tetap memerlukan pemeriksaan browser.
+Pengujian backend memakai repository/transaction double serta berkas uji terisolasi; simulasi kunci transaksi bukan bukti konkurensi PostgreSQL/Aiven nyata. Build bukan bukti Google OAuth atau perilaku browser. Pemeriksaan browser perlu mencakup login biasa/link langsung, refresh antrean/editor, kondisi kosong/gagal, polling berhenti, rasio tombol desktop/mobile, dialog keyboard, 404 dari tab lain, dan hapus pada data uji terisolasi.

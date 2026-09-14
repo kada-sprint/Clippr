@@ -30,7 +30,7 @@ export default function UploadPage() {
         vocabulary: terms,
       });
 
-      navigate('/queue', { state: { project } });
+      navigate(`/queue?projectId=${project.id}`, { state: { project } });
     } catch (error) {
       setErrorMessage(error.message || 'Gagal mengunggah dan memproses video.');
     } finally {

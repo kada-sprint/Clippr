@@ -63,7 +63,7 @@ Keuntungan utama model ini adalah meminimalkan hambatan komunikasi API, mengelim
 4. Cron-job pembersihan berkas &amp; retensi data.</td>
 <td>1. Integrasi Google OAuth 2.0 SDK Klien.<br />
 2. Halaman Login minimalis.<br />
-3. Routing setelah login ke upload atau kembali ke link proyek tujuan, dengan koordinasi integrasi halaman progres dan hasil bersama B/C.</td>
+3. My Project sebagai tujuan login biasa, atau kembali ke link proyek tujuan, dengan koordinasi integrasi halaman progres dan hasil bersama B/C.</td>
 </tr>
 <tr class="header">
 <td><strong>Fitur 2: Ingest Validasi, Ekstraksi Audio, &amp; Mesin Transkripsi (ASR)</strong></td>
@@ -96,9 +96,13 @@ Keuntungan utama model ini adalah meminimalkan hambatan komunikasi API, mengelim
 
 **Koordinasi pipeline:** C menyiapkan fondasi queue/worker pada H-02. B mengimplementasikan job ingest/ekstraksi audio/transkripsi, C mengimplementasikan kurasi/render/render ulang, dan A mengoordinasikan persistensi status serta schema Prisma. Ketiganya menyepakati payload job dan status pada H-01. Bantuan lintas fitur harus menyebut pemilik utama, anggota pendukung, dan file yang dikerjakan.
 
-**Alur akses tanpa dashboard:** login → upload → progres → hasil/edit → ekspor. Tidak ada dashboard, daftar proyek, atau aksi pengelolaan proyek melalui dashboard; API daftar proyek tidak diwajibkan untuk alur ini. Pengguna menyimpan link proyek untuk membuka kembali progres atau hasil setelah menutup tab. Jika sesi berakhir, login mengembalikan pengguna ke proyek tujuan; login tanpa tujuan proyek membuka halaman upload. Link proyek tidak menggantikan autentikasi dan pemeriksaan kepemilikan pada setiap akses proyek/klip, preview, dan unduhan. Link tidak valid atau proyek yang tidak tersedia menampilkan pesan yang sesuai tanpa membocorkan data pengguna lain.
+**Alur akses My Project (keputusan produk 14 September 2026):** login → My Project → upload/buka proyek → progres → hasil/edit → ekspor. Halaman `/projects` menampilkan proyek akun aktif terbaru dahulu melalui `GET /api/projects`. Login tanpa tujuan membuka My Project; login dari link tetap kembali ke proyek tujuan. Link tetap dapat disimpan dan dibuka setelah tab ditutup. Autentikasi dan pemeriksaan kepemilikan tetap wajib pada proyek/klip, preview, serta unduhan; link tidak valid atau proyek tidak tersedia tidak membocorkan data akun lain.
 
-**Koordinasi akses proyek:** A mengoordinasikan routing dan kontrak akses metadata/status berdasarkan ID dengan B/C. UI upload/progres tetap milik B; UI hasil/editor/ekspor tetap milik C. Tidak adanya daftar proyek tidak mengubah persistensi metadata/transkrip maupun kebijakan retensi media pada Bab 4 dan Bab 5.
+**Tampilan dan hapus proyek:** menu sidebar dan judul memakai nama **My Project**. Kartu menampilkan identitas `Proyek <8 karakter ID>`, waktu dibuat, status/tahap, layout, dan jumlah klip; grid 3/2/1 kolom mengikuti desktop/tablet/mobile. Tombol **Buka Proyek** dan ikon trash berada dalam satu baris dengan rasio **3:1**, tinggi sama minimal 44 px. Ikon trash memiliki label aksesibel, tooltip, dan dialog konfirmasi permanen dengan Batal sebagai fokus awal. Pipeline aktif menuju progres; proyek dengan klip menuju editor; lainnya menuju progres. Polling 5 detik hanya selama proses aktif.
+
+**Kontrak penghapusan manual:** `DELETE /api/projects/:id` menghapus media terkelola, transkrip, klip, log LLM terkait, lalu proyek nonaktif milik pengguna. Backend mengembalikan 409 `PROJECT_BUSY` selama pipeline (termasuk transisi `TRANSCRIBED`) atau render klip aktif, 404 untuk proyek hilang/akun lain, dan 204 setelah selesai. Awal upload/render dan penghapusan memakai kunci transaksi per proyek yang sama. Path di luar penyimpanan atau melalui symlink ditolak; berkas yang sudah hilang tidak menggagalkan retry. Sebelum pembersihan, status `deleting` disimpan agar upload/render tetap ditolak meski transaksi terputus. Jika pembersihan sebagian gagal, metadata tetap ada dan pengguna diberi tahu bahwa sebagian media mungkin sudah terhapus; DELETE dapat dicoba ulang pada status ini. Retensi otomatis tetap mengikuti aturan 24 jam; hanya penghapusan manual eksplisit yang ikut menghapus metadata/transkrip.
+
+**Koordinasi akses proyek:** A memiliki My Project dan penghapusan proyek serta mengoordinasikan routing dan kontrak metadata/status dengan B/C. Patch pendukung yang disetujui mencakup URL proyek setelah upload, pemulihan progres berdasarkan ID oleh B, serta pengaman awal render oleh C. UI upload/progres tetap milik B; UI hasil/editor/ekspor tetap milik C.
 
 # 4. Spesifikasi Skema Database Relasional
 
@@ -230,7 +234,7 @@ Dengan mengalihkan model kerja dari spesialisasi peran ke pengembangan per-fitur
 </tr>
 <tr class="header">
 <td><strong>H-04</strong></td>
-<td>Mengintegrasikan login ke upload atau kembali ke link proyek tujuan, serta akses metadata/status dengan halaman progres dan hasil milik B/C. Menyiapkan cron-job retensi serta koordinasi akses media dengan B/C.</td>
+<td>Mengintegrasikan login ke My Project atau kembali ke link proyek tujuan, serta akses metadata/status dengan halaman progres dan hasil milik B/C. Menyiapkan cron-job retensi serta koordinasi akses media dengan B/C.</td>
 <td>Implementasi ekstraksi audio FFmpeg pada worker ingest milik B. Menghubungkan upload ke API dan queue, serta menampilkan upload progress.</td>
 <td>Menulis modul rendering video vertikal FFmpeg untuk 3 Layout Template (Template A: Slide+Cam, B: Talking-head, C: Slide Saja).</td>
 </tr>
@@ -295,7 +299,7 @@ Sebuah backlog fitur dianggap selesai (Done) secara vertikal apabila:
 
 **Kriteria penerimaan khusus fitur A:**
 
-- Login tanpa tujuan proyek membuka upload; link proyek yang dibuka setelah tab ditutup memuat progres atau hasil proyek milik pengguna. Jika login diperlukan, pengguna kembali ke proyek tujuan setelah berhasil masuk.
-- Akses proyek/klip pengguna lain ditolak, termasuk preview dan unduhan; link tidak valid ditangani tanpa membocorkan data. Alur utama berjalan tanpa dashboard atau daftar proyek.
+- Login tanpa tujuan proyek membuka My Project; link proyek yang dibuka setelah tab ditutup memuat progres atau hasil proyek milik pengguna. Jika login diperlukan, pengguna kembali ke proyek tujuan setelah berhasil masuk.
+- Daftar proyek hanya menampilkan milik akun aktif; buka/hapus berada dalam satu baris 3:1. Penghapusan nonaktif membutuhkan konfirmasi dan menolak benturan dengan upload/render. Akses proyek/klip pengguna lain ditolak, termasuk preview dan unduhan; link tidak valid ditangani tanpa membocorkan data.
 - Dengan waktu uji yang dikontrol, verifikasi batas kedaluwarsa sumber 24 jam setelah upload/upload ulang berhasil dan MP4/SRT 24 jam setelah render berhasil. Edit, polling, dan unduhan tidak memperpanjang retensi.
 - Pembersihan menghapus media kedaluwarsa dan mengosongkan path terkait, dengan metadata/transkrip tetap tersimpan. Media yang dipakai job aktif ditunda sampai job selesai; render ulang setelah sumber hilang meminta upload ulang sumber asli. Tidak ada tambahan masa retensi 7 hari.
