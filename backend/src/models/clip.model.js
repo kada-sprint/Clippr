@@ -11,6 +11,8 @@ const clipSelect = {
   subtitledVideoPath: true,
   status: true,
   subtitleStyle: true,
+  horizontalOffset: true,
+  project: { select: { selectedLayout: true } },
 };
 
 const clipSelectDetail = {
