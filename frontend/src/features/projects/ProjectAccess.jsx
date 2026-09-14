@@ -1,21 +1,12 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import { apiRequest } from "../../lib/api.js";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const statusLabels = {
-  idle: "Tidak sedang diproses",
-  processing: "Sedang diproses",
-  error: "Pemrosesan gagal",
-};
-const stageLabels = {
-  ingest: "Persiapan video",
-  transcribe: "Transkripsi",
-  analyze: "Kurasi",
-  render: "Render",
-};
+const ProjectContext = createContext(null);
+export const useProject = () => useContext(ProjectContext);
 
 export default function ProjectAccess({ children }) {
   const location = useLocation();
@@ -58,8 +49,8 @@ function AccessError({ title, message, onRetry }) {
           Coba lagi
         </button>
       )}
-      <Link className="button primary" to="/upload">
-        Ke halaman upload
+      <Link className="button primary" to="/projects">
+        Ke My Project
       </Link>
     </section>
   );
@@ -70,42 +61,33 @@ function ProjectRequest({ projectId, children }) {
   const location = useLocation();
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState(null);
-  const [copyMessage, setCopyMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
-    apiRequest(`/projects/${projectId}`, { signal: controller.signal })
-      .then(({ project }) => {
-        if (!controller.signal.aborted) setResult({ project });
-      })
-      .catch(async (error) => {
-        if (controller.signal.aborted) return;
-        if (error.status === 401) {
-          await refreshSession();
-          return;
-        }
-        setResult({ error });
-      });
-    return () => controller.abort();
-  }, [projectId, attempt, refreshSession]);
+    let timer;
+    function load() {
+      apiRequest(`/projects/${projectId}`, { signal: controller.signal })
+        .then(({ project }) => {
+          if (controller.signal.aborted) return;
+          setResult({ project });
+          if (project.isBusy && location.pathname === '/queue') timer = setTimeout(load, 5000);
+        })
+        .catch(async (error) => {
+          if (controller.signal.aborted) return;
+          if (error.status === 401) {
+            await refreshSession();
+            return;
+          }
+          setResult({ error });
+        });
+    }
+    load();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [projectId, attempt, refreshSession, location.pathname]);
 
   function reload() {
     setResult(null);
-    setCopyMessage("");
     setAttempt((value) => value + 1);
-  }
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}${location.pathname}${location.search}${location.hash}`,
-      );
-      setCopyMessage("Link proyek disalin.");
-    } catch {
-      setCopyMessage(
-        "Link belum dapat disalin. Salin alamat dari bilah alamat browser.",
-      );
-    }
   }
 
   if (!result) return <p role="status">Memuat proyek…</p>;
@@ -135,5 +117,5 @@ function ProjectRequest({ projectId, children }) {
   }
 
   const { project } = result;
-  return children;
+  return <ProjectContext.Provider value={project}>{children}</ProjectContext.Provider>;
 }

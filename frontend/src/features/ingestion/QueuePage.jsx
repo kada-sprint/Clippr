@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
+import { useProject } from '../projects/ProjectAccess.jsx';
 import './queue.css';
 
 export default function QueuePage() {
   const location = useLocation();
-  const project = location.state?.project;
+  const persistedProject = useProject();
+  const project = persistedProject || location.state?.project;
   const [copied, setCopied] = useState(false);
 
   function handleCopySession() {
@@ -15,43 +17,60 @@ export default function QueuePage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const isTranscribed = project?.status === 'TRANSCRIBED';
+  const stageOrder = ['ingest', 'transcribe', 'analyze', 'render'];
+  const currentStage = project?.processingStage === 'curate' ? 'analyze' : project?.processingStage;
+  const isTranscribed = project?.status === 'TRANSCRIBED' || ['analyze', 'render'].includes(currentStage) || project?.clipCount > 0;
+  function stageStatus(stage) {
+    if (!project) return 'Belum dimulai';
+    if (currentStage === stage && project.status === 'error') return 'Gagal';
+    if (currentStage === stage && project.isBusy) return 'Memproses';
+    if (stage === 'render') return project.isBusy && project.clipCount > 0 ? 'Memproses' : 'Lihat status tiap klip';
+    if (project.clipCount > 0 || stageOrder.indexOf(currentStage) > stageOrder.indexOf(stage)) return 'Selesai';
+    return 'Belum dimulai';
+  }
 
   const stages = [
     {
       title: 'Persiapan Video',
       icon: 'upload',
       description: 'Pemeriksaan berkas dan persiapan audio.',
-      status: project ? 'Selesai' : 'Belum dimulai',
+      status: stageStatus('ingest'),
     },
     {
       title: 'Transkripsi Audio',
       icon: 'edit',
       description: 'Penyusunan transkrip dengan waktu per kata.',
-      status: isTranscribed ? 'Selesai' : (project ? 'Memproses' : 'Belum dimulai'),
+      status: stageStatus('transcribe'),
     },
     {
       title: 'Kurasi Konsep',
       icon: 'spark',
       description: 'Pemilihan potongan dengan materi ajar yang utuh.',
-      status: project?.processingStage === 'curate' ? 'Memproses'
-        : isTranscribed ? 'Siap dikurasi'
-        : 'Belum dimulai',
+      status: stageStatus('analyze'),
     },
     {
       title: 'Render Video 9:16',
       icon: 'video',
       description: 'Penyusunan layout vertikal dan subtitle.',
-      status: 'Belum dimulai',
+      status: stageStatus('render'),
     },
   ];
+
+  if (project?.status === 'deleting') {
+    return (
+      <section className="queue-page">
+        <header className="queue-heading"><h1>Penghapusan belum selesai</h1><p>Proyek ini sudah mulai dihapus. Sebagian media mungkin sudah terhapus. Kembali ke My Project untuk mencoba hapus kembali.</p></header>
+        <Link className="button primary" to="/projects">Ke My Project</Link>
+      </section>
+    );
+  }
 
   return (
     <section className="queue-page" aria-labelledby="queue-title">
       <header className="queue-heading">
         <span className="queue-badge">
           <span style={isTranscribed ? { background: '#86efac' } : undefined} />
-          {isTranscribed ? 'TERTRANSKRIPSI' : (project ? project.status : 'MENUNGGU VIDEO')}
+          {project?.status === 'error' ? 'PEMROSESAN GAGAL' : project?.isBusy ? 'SEDANG DIPROSES' : project?.clipCount > 0 ? 'SIAP DITINJAU' : 'MENUNGGU VIDEO'}
         </span>
         <h1 id="queue-title">Status Antrean Pemrosesan</h1>
         <p>Pantau tahapan webinar Anda menjadi klip edukasi vertikal, dalam satu tempat.</p>
@@ -134,16 +153,14 @@ export default function QueuePage() {
         <span className="queue-info-icon"><Icon name="clock" size={23} /></span>
         <div className="queue-info-copy">
           <h2 id="queue-info-title">
-            {project ? 'Transkripsi Berhasil Disimpan' : 'Antrean siap untuk langkah berikutnya'}
+            {project?.status === 'error' ? 'Pemrosesan belum berhasil' : project?.isBusy ? 'Pemrosesan sedang berlangsung' : isTranscribed ? 'Klip siap ditinjau' : 'Antrean siap untuk langkah berikutnya'}
           </h2>
           <p>
-            {project
-              ? 'File video sumber telah disimpan, audio diekstrak, dan transkrip dengan word-level timestamp siap digunakan untuk kurasi klip.'
-              : 'Pengiriman dan pemrosesan video telah siap. Anda dapat mengunggah rekaman webinar Anda di halaman unggah.'}
+            {project?.status === 'error' ? 'Periksa tahap yang gagal. Hasil klip yang tersedia tetap dapat dibuka di editor.' : project?.isBusy ? 'Status diperbarui otomatis. Anda dapat membuka proyek ini kembali melalui My Project.' : project?.clipCount > 0 ? 'Buka editor untuk meninjau hasil dan status render setiap klip.' : 'Belum ada hasil klip untuk proyek ini. Unggah video untuk memulai proyek baru.'}
           </p>
         </div>
         <div className="queue-actions">
-          <Link className="button secondary" to={`/editor?projectId=${project.id}`}><Icon name="edit" size={16} />Buka di Editor</Link>
+          {project?.clipCount > 0 && <Link className="button secondary" to={`/editor?projectId=${project.id}`}><Icon name="edit" size={16} />Buka di Editor</Link>}
           <Link className="button primary" to="/upload"><Icon name="plus" size={17} />Unggah Video Baru</Link>
         </div>
       </aside>

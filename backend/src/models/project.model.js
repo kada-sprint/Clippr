@@ -1,4 +1,6 @@
 const { getPrisma } = require('../config/prisma');
+const { withProjectLock } = require('./project-lock');
+const { isProjectBusy } = require('../utils/project-status');
 
 const projectSelect = {
   id: true,
@@ -13,6 +15,7 @@ const projectSelect = {
   sourceExpiresAt: true,
   createdAt: true,
   _count: { select: { clips: true } },
+  clips: { select: { status: true } },
 };
 
 async function listByUserId(userId) {
@@ -63,15 +66,30 @@ async function updateSetupIfEmpty(id, userId, data) {
   });
 }
 
-async function deleteIfEmpty(id, userId) {
-  const prisma = getPrisma();
-  return prisma.$transaction(async (transaction) => {
+async function deleteIfInactive(id, userId, removeMedia) {
+  // Persist the intent before touching disk. If cleanup times out or the process
+  // exits, upload/render still reject this project and DELETE can resume safely.
+  const admission = await withProjectLock(id, userId, async (transaction) => {
+    const project = await transaction.project.findFirst({ where: { id, userId }, select: projectSelect });
+    if (!project) return { state: 'missing' };
+    if (isProjectBusy(project)) return { state: 'busy' };
+    await transaction.project.update({ where: { id }, data: { status: 'deleting', processingStage: null } });
+    return { state: 'admitted' };
+  });
+  if (admission.state !== 'admitted') return admission;
+  return withProjectLock(id, userId, async (transaction) => {
     const project = await transaction.project.findFirst({
       where: { id, userId },
-      select: projectSelect,
+      select: {
+        ...projectSelect,
+        clips: { select: { id: true, status: true, clipVideoPath: true, subtitledVideoPath: true, srtPath: true } },
+      },
     });
     if (!project) return { state: 'missing' };
-    if (!isEmpty(project)) return { state: 'not_empty' };
+    if (isProjectBusy(project)) return { state: 'busy' };
+    await removeMedia(project);
+    await transaction.clip.deleteMany({ where: { projectId: id } });
+    await transaction.llmCall.deleteMany({ where: { projectId: id } });
     await transaction.project.delete({ where: { id } });
     return { state: 'deleted' };
   });
@@ -90,6 +108,6 @@ module.exports = {
   createForUser,
   findByIdForUser,
   updateSetupIfEmpty,
-  deleteIfEmpty,
+  deleteIfInactive,
   updateLastEditActivity,
 };

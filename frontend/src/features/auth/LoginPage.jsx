@@ -30,9 +30,9 @@ export default function LoginPage() {
   const pending = useRef(false);
   const location = useLocation();
   const from = location.state?.from;
-  const destination = ["/upload", "/queue", "/editor"].includes(from?.pathname)
+  const destination = ["/projects", "/upload", "/queue", "/editor"].includes(from?.pathname)
     ? { pathname: from.pathname, search: from.search, hash: from.hash }
-    : "/upload";
+    : "/projects";
   const localIp = window.location.hostname === "127.0.0.1";
 
   const handleCredential = useCallback(

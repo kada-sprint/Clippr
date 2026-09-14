@@ -59,6 +59,12 @@ Berbeda dari perkakas global seperti Opus.pro yang mengejar *viral triggers* (re
 ---
 
 ## 5. End-to-End User Flow
+0. **Login dan My Project (keputusan produk 14 September 2026):**
+   * Login tanpa tujuan membuka `/projects`, dengan judul/menu **My Project**. Login dari link proyek kembali ke tujuan semula.
+   * Daftar proyek milik akun aktif ditampilkan terbaru dahulu: identitas `Proyek <8 karakter ID>`, waktu dibuat, status/tahap, layout, dan jumlah klip.
+   * Setiap kartu memiliki tombol **Buka Proyek** dan ikon trash dalam satu baris dengan rasio lebar **3:1**, termasuk pada mobile. Header menyediakan **Unggah Video**.
+   * Proyek nonaktif boleh dihapus permanen setelah konfirmasi, termasuk sumber, transkrip, klip, ekspor, dan log LLM terkait. Proyek dengan pipeline/render aktif tidak boleh dihapus.
+   * Penghapusan manual ini berbeda dari retensi otomatis: kedaluwarsa media tetap 24 jam dan tidak menghapus metadata/transkrip.
 1. **User Upload:**
    * File MP4/MOV (< 45 mnt, < 1 GB).
    * Pilih 1 dari 3 Layout Template.

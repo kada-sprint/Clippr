@@ -1,5 +1,7 @@
 const AppError = require('../utils/app-error');
 const projectModel = require('../models/project.model');
+const { isProjectBusy } = require('../utils/project-status');
+const { createProjectMediaCleanup } = require('./project-media-cleanup');
 
 const ALLOWED_LAYOUTS = Object.freeze(['slide-cam', 'talking-head', 'slide-only']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -51,6 +53,7 @@ function validateLayout(layout) {
 function toSummary(project) {
   return {
     id: project.id,
+    isBusy: isProjectBusy(project),
     status: project.status,
     processingStage: project.processingStage,
     selectedLayout: project.selectedLayout,
@@ -74,7 +77,7 @@ function throwDatabaseError(error, message) {
   throw new AppError(503, 'DATABASE_UNAVAILABLE', message);
 }
 
-function createProjectService({ projectRepository = projectModel } = {}) {
+function createProjectService({ projectRepository = projectModel, removeMedia = createProjectMediaCleanup() } = {}) {
   return {
     async list(userId) {
       try {
@@ -143,15 +146,15 @@ function createProjectService({ projectRepository = projectModel } = {}) {
     async remove(userId, projectId) {
       validateProjectId(projectId);
       try {
-        const result = await projectRepository.deleteIfEmpty(projectId, userId);
+        const result = await projectRepository.deleteIfInactive(projectId, userId, removeMedia);
         if (result.state === 'missing') {
           throw new AppError(404, 'PROJECT_NOT_FOUND', 'Proyek tidak ditemukan.');
         }
         if (result.state !== 'deleted') {
-          throw new AppError(409, 'PROJECT_NOT_EMPTY', 'Hanya proyek kosong yang dapat dihapus.');
+          throw new AppError(409, 'PROJECT_BUSY', 'Proyek sedang diproses atau memiliki klip yang sedang dirender. Coba lagi setelah proses selesai.');
         }
       } catch (error) {
-        throwDatabaseError(error, 'Proyek belum dapat dihapus.');
+        throwDatabaseError(error, 'Penghapusan belum selesai. Sebagian media mungkin sudah terhapus; silakan muat ulang daftar dan coba hapus kembali.');
       }
     },
   };

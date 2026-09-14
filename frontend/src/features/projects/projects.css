@@ -1,0 +1,36 @@
+.projects-page { max-width: 1280px; margin: 0 auto; padding: 44px 36px; }
+.projects-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+.projects-heading h1 { font-size: clamp(28px, 3vw, 38px); letter-spacing: -1px; }
+.projects-heading p { color: #9baac0; margin-top: 12px; line-height: 1.7; font-size: 14px; }
+.projects-heading > .button { flex-shrink: 0; }
+.projects-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.project-card { min-width: 0; display: flex; flex-direction: column; padding: 22px; border: 1px solid #263247; border-radius: 16px; background: #111a29; }
+.project-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.project-art { padding: 14px; border-radius: 12px; background: #1d3152; color: #85b3ff; }
+.project-status { padding: 6px 10px; border-radius: 20px; background: #1d3047; color: #9fc7ff; font-size: 11px; line-height: 1.5; }
+.project-status.is-error { background: #3e242d; color: #ffafb4; }
+.project-card h2 { font-size: 18px; overflow-wrap: anywhere; }
+.project-date { font-size: 12px; color: #9baac0; margin-top: 8px; }
+.project-card dl { display: grid; gap: 10px; margin: 22px 0; font-size: 12px; }
+.project-card dl > div { display: flex; justify-content: space-between; gap: 12px; }
+.project-card dt { color: #9baac0; }
+.project-card dd { margin: 0; text-align: right; }
+.project-actions { display: grid; grid-template-columns: 3fr 1fr; gap: 10px; margin-top: auto; padding-top: 16px; border-top: 1px solid #263247; }
+.project-actions .button { min-width: 0; min-height: 44px; height: 46px; padding: 10px 4px; border-radius: 9px; gap: 8px; }
+.project-trash { color: #ffabb4; background: #3b202b; border: 1px solid #683340; }
+.project-trash:hover:not(:disabled) { background: #542936; }
+.project-busy-note { font-size: 11px; line-height: 1.6; color: #9baac0; margin-bottom: 14px; }
+.projects-empty { text-align: center; padding: 70px 24px; border: 1px dashed #354158; border-radius: 16px; color: #9baac0; }
+.projects-empty h2 { color: #eef3ff; margin: 18px 0 12px; }
+.projects-empty .button { margin-top: 24px; }
+.projects-message { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; color: #ffabb4; }
+.projects-notice:not(:empty) { margin-bottom: 20px; color: #9de0c9; }
+.project-delete-dialog { width: min(460px, calc(100% - 32px)); margin: auto; padding: 28px; border: 1px solid #354158; border-radius: 16px; background: #111a29; color: #eef3ff; }
+.project-delete-dialog::backdrop { background: #030710bd; }
+.project-delete-dialog h2 { font-size: 22px; }
+.project-delete-dialog p { font-size: 14px; line-height: 1.8; margin-top: 18px; color: #b4c0d3; }
+.project-delete-dialog .project-delete-error { color: #ffabb4; }
+.project-dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 26px; }
+@media (max-width: 1200px) { .projects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1000px) { .projects-page { padding: 36px 24px; } }
+@media (max-width: 600px) { .projects-page { padding: 26px 16px; } .projects-grid { grid-template-columns: minmax(0, 1fr); } .projects-heading { align-items: flex-start; flex-direction: column; } .project-card { padding: 20px; } }

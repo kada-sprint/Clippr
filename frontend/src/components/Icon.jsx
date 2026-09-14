@@ -1,4 +1,5 @@
 const paths = {
+  trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7',
   arrow: 'M4 12h16m-6-6 6 6-6 6',
   play: 'm9 5 11 7-11 7V5Z',
   upload: 'M12 16V4m-4 4 4-4 4 4M4 16v4h16v-4',
