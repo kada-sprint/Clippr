@@ -49,6 +49,14 @@ async function markTranscribing(id, userId) {
   });
 }
 
+async function markCurating(id, userId) {
+  return getPrisma().project.update({
+    where: { id, userId },
+    data: { status: 'processing', processingStage: 'curate' },
+    select: uploadProjectSelect,
+  });
+}
+
 async function saveTranscript(id, userId, transcriptJson) {
   return getPrisma().project.update({
     where: { id, userId },
@@ -69,6 +77,7 @@ module.exports = {
   findUploadTarget,
   attachSource,
   markTranscribing,
+  markCurating,
   saveTranscript,
   markFailed,
 };

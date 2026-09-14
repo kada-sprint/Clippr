@@ -34,7 +34,9 @@ export default function QueuePage() {
       title: 'Kurasi Konsep',
       icon: 'spark',
       description: 'Pemilihan potongan dengan materi ajar yang utuh.',
-      status: isTranscribed ? 'Siap dikurasi' : 'Belum dimulai',
+      status: project?.processingStage === 'curate' ? 'Memproses'
+        : isTranscribed ? 'Siap dikurasi'
+        : 'Belum dimulai',
     },
     {
       title: 'Render Video 9:16',
@@ -96,6 +98,8 @@ export default function QueuePage() {
                   style={
                     stage.status === 'Selesai'
                       ? { background: '#14532d', color: '#86efac' }
+                      : stage.status === 'Memproses'
+                      ? { background: '#1e3a5f', color: '#93c5fd', animation: 'pulse 1.5s ease-in-out infinite' }
                       : stage.status === 'Siap dikurasi'
                       ? { background: '#1e3a5f', color: '#93c5fd' }
                       : undefined

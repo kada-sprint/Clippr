@@ -51,3 +51,4 @@
   .queue-stage-top { margin-bottom: 17px; }
   .queue-actions > .button { width: 100%; }
 }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }

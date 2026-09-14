@@ -4,6 +4,7 @@ const { extractAudio: defaultExtractAudio } = require('../utils/ffmpeg');
 const { transcribeAudio: defaultTranscribeAudio } = require('./stt.service');
 const { removeUploadedFile: defaultRemoveFile } = require('../middlewares/upload.middleware');
 const { validateAndFormatVocabulary, validateLayout, validateProjectId } = require('./project.service');
+const { curateClips } = require('./curation.service');
 
 function toPublicProject(project) {
   return {
@@ -66,6 +67,20 @@ function createUploadService({
 
         const transcribed = await repository.saveTranscript(projectId, userId, transcriptJson);
         console.log(`[Upload Service] Proyek ${projectId} berhasil diupdate ke status TRANSCRIBED.`);
+
+        processingStage = 'curate';
+        await repository.markCurating(projectId, userId);
+
+        setImmediate(async () => {
+          try {
+            await curateClips(projectId, transcriptJson);
+            console.log(`[Upload Service] Kurasi selesai untuk ${projectId}.`);
+          } catch (err) {
+            console.error(`[Upload Service] Kurasi gagal untuk ${projectId}:`, err.message);
+            await repository.markFailed(projectId, userId, 'curate');
+          }
+        });
+
         return toPublicProject(transcribed);
       } catch (error) {
         if (sourceAttached) {
