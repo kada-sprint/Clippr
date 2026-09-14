@@ -290,7 +290,7 @@ components:
       nullable: true
     ProjectLayout:
       type: string
-      enum: [SLIDE_CAM, TALKING_HEAD, SLIDE_ONLY]
+      enum: [slide-cam, talking-head, slide-only]
     ProjectSummary:
       type: object
       required: [id, status, processingStage, selectedLayout, hasSource, clipCount, createdAt]

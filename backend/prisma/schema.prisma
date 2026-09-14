@@ -54,8 +54,9 @@ model Clip {
   transcriptJson    Json      @map("transcript_json") @db.JsonB
   conceptScore      Decimal   @map("concept_score") @db.Decimal(4, 3)
   pedagogicalReason String    @map("pedagogical_reason")
-  clipVideoPath     String?   @map("clip_video_path")
-  srtPath           String?   @map("srt_path")
+  clipVideoPath         String?   @map("clip_video_path")
+  subtitledVideoPath    String?   @map("subtitled_video_path")
+  srtPath               String?   @map("srt_path")
   status            String    @default("pending")
   renderedAt        DateTime? @map("rendered_at") @db.Timestamptz(3)
   exportExpiresAt   DateTime? @map("export_expires_at") @db.Timestamptz(3)

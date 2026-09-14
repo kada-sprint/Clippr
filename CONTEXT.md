@@ -32,6 +32,18 @@ _Avoid_: Score, rating, completeness score
 A vertical video segment (9:16) extracted from a webinar, scored for concept completeness, and ready for export as MP4 + SRT.
 _Avoid_: Segment, highlight, snippet
 
+**Clip Status**:
+The state of a clip in the pipeline: `pending` (awaiting render), `needs_review` (fallback curation or null score), `rendering` (FFmpeg in progress), `rendered` (export ready), `error` (render failed).
+_Avoid_: Clip state, clip progress
+
+**Raw Reframe**:
+The initial 9:16 vertical render without subtitles, stored at `clip_video_path`. Preserved separately from the subtitled version to allow re-rendering with different subtitle styles without re-running the expensive reframe pass.
+_Avoid_: Vertical render, base render
+
+**Subtitled Render**:
+The vertical render with burned subtitles, stored at `subtitled_video_path`. Produced by the Subtitle Burner as a separate FFmpeg pass over the Raw Reframe.
+_Avoid_: Final render, burned render
+
 **Vertical Reframe**:
 The process of converting horizontal webinar video (16:9) to vertical format (9:16) using FFmpeg template-based reframe.
 _Avoid_: Crop, resize, convert
@@ -67,3 +79,23 @@ _Avoid_: Score filtering, quality gate
 **Worker**:
 A Node.js process that consumes jobs from BullMQ queues and executes heavy tasks (FFmpeg, ASR, LLM) outside the Express HTTP thread. Each worker process has its own Prisma Client instance. Workers never share state with the API server.
 _Avoid_: processor, job handler, background task
+
+**Subtitle Burner**:
+A pure function that generates ASS subtitle files from clip-relative word-level timestamps and burns them onto a vertical video via FFmpeg. Produces a separate subtitled.mp4, preserving the raw vertical render.
+_Avoid_: Subtitle renderer, caption burner, ASS generator
+
+**Clip-Relative Timestamps**:
+Word-level start and end times rebased so 0 equals the clip's start. Used for subtitle generation (ASS/SRT) because subtitles are tied to the clip, not the source video.
+_Avoid_: Rebased timestamps, shifted timestamps, local timestamps
+
+**Safe Zone Margins**:
+Hardcoded percentage-based margins (10% top, 17.5% bottom, 10% sides) applied to ASS subtitle positioning to avoid overlap with TikTok/Reels UI elements on 9:16 vertical video.
+_Avoid_: Subtitle bounds, text margins
+
+**Template A Camera-Band Exclusion**:
+The bottom 30% of the 1080×1920 canvas occupied by Template A's camera overlay in the current stacked-band layout. Subtitle placement must avoid this zone. Temporary constraint — expected to shrink to a small corner inset once the PiP rework lands.
+_Avoid_: Camera band, bottom band, PiP zone
+
+**Cross-Template Validation**:
+Automated verification that all three render templates (slide-cam, talking-head, slide-only) produce identical output properties (resolution, codec, container) and timing drift within tolerance. Implemented via ffprobe-based assertions in the test suite.
+_Avoid_: Template consistency check, render validation

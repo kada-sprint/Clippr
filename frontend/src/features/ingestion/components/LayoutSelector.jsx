@@ -1,9 +1,9 @@
 import Icon from '../../../components/Icon.jsx';
 
 const layouts = [
-  { value: 'slide_speaker', label: 'Slide + Pembicara', badge: 'REKOMENDASI EDUKASI', description: 'Materi presentasi di atas, kamera pembicara di bawah. Menjaga penjelasan dan visual tetap selaras.' },
-  { value: 'speaker', label: 'Wajah Penuh', badge: 'FOKUS PEMBICARA', description: 'Bingkai vertikal yang berpusat pada pembicara. Cocok untuk penjelasan langsung, diskusi, dan sesi tanya jawab.' },
-  { value: 'slides', label: 'Slide Saja', badge: 'FOKUS MATERI VISUAL', description: 'Tampilkan slide secara proporsional dengan ruang untuk judul dan subtitle. Diagram dan materi tetap menjadi fokus.' },
+  { value: 'slide-cam', label: 'Slide + Pembicara', badge: 'REKOMENDASI EDUKASI', description: 'Materi presentasi di atas, kamera pembicara di bawah. Menjaga penjelasan dan visual tetap selaras.' },
+  { value: 'talking-head', label: 'Wajah Penuh', badge: 'FOKUS PEMBICARA', description: 'Bingkai vertikal yang berpusat pada pembicara. Cocok untuk penjelasan langsung, diskusi, dan sesi tanya jawab.' },
+  { value: 'slide-only', label: 'Slide Saja', badge: 'FOKUS MATERI VISUAL', description: 'Tampilkan slide secara proporsional dengan ruang untuk judul dan subtitle. Diagram dan materi tetap menjadi fokus.' },
 ];
 
 export default function LayoutSelector({ value, onChange, subtitleStyle }) {

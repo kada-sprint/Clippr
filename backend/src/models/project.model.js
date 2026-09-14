@@ -77,10 +77,19 @@ async function deleteIfEmpty(id, userId) {
   });
 }
 
+async function updateLastEditActivity(projectId) {
+  return getPrisma().project.update({
+    where: { id: projectId },
+    data: { lastEditActivityAt: new Date() },
+    select: { id: true, lastEditActivityAt: true },
+  });
+}
+
 module.exports = {
   listByUserId,
   createForUser,
   findByIdForUser,
   updateSetupIfEmpty,
   deleteIfEmpty,
+  updateLastEditActivity,
 };
