@@ -14,4 +14,5 @@ module.exports = {
   llmApiBaseUrl: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
   llmModel: process.env.LLM_MODEL || 'gpt-5.6-luna',
   ffmpegPath: process.env.FFMPEG_PATH || '',
+  ffprobePath: process.env.FFPROBE_PATH || '',
 };

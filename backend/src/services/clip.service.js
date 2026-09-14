@@ -110,9 +110,9 @@ function createClipService({
         const project = clip.project;
 
         const layout = project.selectedLayout || 'slide-cam';
-        const clipDir = path.resolve(__dirname, '../..', project.id, clip.id);
-        const verticalPath = path.join(clipDir, 'vertical.mp4');
-        const subtitledPath = path.join(clipDir, 'subtitled.mp4');
+        const clipDir = path.resolve(__dirname, '../../uploads', project.id, clip.id);
+        const verticalPath = path.join(clipDir, 'vertical.mp4').replaceAll('\\', '/');
+        const subtitledPath = path.join(clipDir, 'subtitled.mp4').replaceAll('\\', '/');
 
         setImmediate(async () => {
           try {

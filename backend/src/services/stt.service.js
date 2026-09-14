@@ -380,7 +380,7 @@ async function transcribeAudio(audioFilePath, customVocabulary = '') {
   );
 }
 
-const CHUNK_DURATION_SEC = 300; // 5 minutes per chunk
+const CHUNK_DURATION_SEC = 120; // 2 minutes per chunk
 
 /**
  * Transkripsi audio dengan chunking otomatis untuk video panjang.
@@ -390,7 +390,7 @@ const CHUNK_DURATION_SEC = 300; // 5 minutes per chunk
  * @param {string} audioFilePath - Path file audio
  * @param {string} [customVocabulary=''] - Kosakata kustom
  * @param {Object} [options]
- * @param {number} [options.chunkDurationSec=300] - Durasi per chunk dalam detik
+ * @param {number} [options.chunkDurationSec=120] - Durasi per chunk dalam detik (default 120s / 2 menit)
  * @returns {Promise<Object>} Transcript digabung
  */
 async function transcribeAudioChunked(audioFilePath, customVocabulary = '', { chunkDurationSec = CHUNK_DURATION_SEC } = {}) {
@@ -419,34 +419,47 @@ async function transcribeAudioChunked(audioFilePath, customVocabulary = '', { ch
   const chunkResults = [];
   const tempChunkPaths = [];
 
-  for (let i = 0; i < chunkCount; i++) {
-    const startSec = i * chunkDurationSec;
-    const thisDuration = Math.min(chunkDurationSec, duration - startSec);
-    const offsetSec = startSec; // Timestamp offset for merging
+  try {
+    for (let i = 0; i < chunkCount; i++) {
+      const startSec = i * chunkDurationSec;
+      const thisDuration = Math.min(chunkDurationSec, duration - startSec);
+      const offsetSec = startSec; // Timestamp offset for merging
 
-    let chunkPath;
-    try {
-      chunkPath = await splitAudioChunk(audioFilePath, startSec, thisDuration);
-      tempChunkPaths.push(chunkPath);
-    } catch (err) {
-      console.error(`[STT Chunked] Gagal memotong chunk ${i + 1}/${chunkCount}: ${err.message}`);
-      continue;
+      let chunkPath;
+      try {
+        chunkPath = await splitAudioChunk(audioFilePath, startSec, thisDuration);
+        tempChunkPaths.push(chunkPath);
+      } catch (err) {
+        console.error(`[STT Chunked] Gagal memotong chunk ${i + 1}/${chunkCount}: ${err.message}`);
+        continue;
+      }
+
+      try {
+        console.log(`[STT Chunked] Transkripsi chunk ${i + 1}/${chunkCount} (offset ${offsetSec.toFixed(1)}s, durasi ${thisDuration.toFixed(1)}s)`);
+        const result = await transcribeAudio(chunkPath, customVocabulary);
+        chunkResults.push({ result, offsetSec });
+        console.log(`[STT Chunked] Chunk ${i + 1}/${chunkCount} berhasil: ${result.words?.length || 0} kata`);
+      } catch (err) {
+        console.error(`[STT Chunked] Chunk ${i + 1}/${chunkCount} gagal setelah retry: ${err.message}`);
+        // Partial failure: skip this chunk, continue with others
+      } finally {
+        // Langsung hapus file temporer dari os.tmpdir() segera setelah transkripsi chunk selesai/gagal
+        try {
+          if (fs.existsSync(chunkPath)) {
+            fs.unlinkSync(chunkPath);
+          }
+        } catch {}
+      }
     }
-
-    try {
-      console.log(`[STT Chunked] Transkripsi chunk ${i + 1}/${chunkCount} (offset ${offsetSec.toFixed(1)}s, durasi ${thisDuration.toFixed(1)}s)`);
-      const result = await transcribeAudio(chunkPath, customVocabulary);
-      chunkResults.push({ result, offsetSec });
-      console.log(`[STT Chunked] Chunk ${i + 1}/${chunkCount} berhasil: ${result.words?.length || 0} kata`);
-    } catch (err) {
-      console.error(`[STT Chunked] Chunk ${i + 1}/${chunkCount} gagal setelah retry: ${err.message}`);
-      // Partial failure: skip this chunk, continue with others
+  } finally {
+    // Pastikan seluruh file potongan chunk dibersihkan dari os.tmpdir()
+    for (const p of tempChunkPaths) {
+      try {
+        if (fs.existsSync(p)) {
+          fs.unlinkSync(p);
+        }
+      } catch {}
     }
-  }
-
-  // Cleanup chunk files
-  for (const p of tempChunkPaths) {
-    try { await fs.promises.unlink(p); } catch {}
   }
 
   if (chunkResults.length === 0) {
@@ -461,10 +474,10 @@ async function transcribeAudioChunked(audioFilePath, customVocabulary = '', { ch
 /**
  * Menggabungkan hasil transkripsi dari beberapa chunk
  * @param {Array<{result: Object, offsetSec: number}>} chunkResults
- * @returns {Object} Transcript gabungan
+ * @returns {Object} Transcript gabungan (REQ-2.1)
  */
 function mergeChunkResults(chunkResults) {
-  // Sort by offset to maintain chronological order
+  // Urutkan berdasarkan offset agar teks dan kata kronologis
   chunkResults.sort((a, b) => a.offsetSec - b.offsetSec);
 
   const allWords = [];
@@ -472,31 +485,49 @@ function mergeChunkResults(chunkResults) {
   let lastEndTime = 0;
 
   for (const { result, offsetSec } of chunkResults) {
-    if (result.words && result.words.length > 0) {
+    if (Array.isArray(result?.words) && result.words.length > 0) {
       for (const word of result.words) {
+        const rawWord = String(word.word || '').trim();
+        // Filter artefak yang tidak valid
+        if (!rawWord || rawWord === '[object Object]' || rawWord === '[object' || rawWord === 'Object]') {
+          continue;
+        }
+
         allWords.push({
-          word: word.word,
-          start_time: Number((word.start_time + offsetSec).toFixed(2)),
-          end_time: Number((word.end_time + offsetSec).toFixed(2)),
-          confidence: word.confidence,
+          word: rawWord,
+          start_time: Number((Number(word.start_time) + offsetSec).toFixed(2)),
+          end_time: Number((Number(word.end_time) + offsetSec).toFixed(2)),
+          confidence: typeof word.confidence === 'number' && Number.isFinite(word.confidence) ? word.confidence : 1.0,
         });
       }
     }
-    if (result.text) {
-      fullText += (fullText ? ' ' : '') + result.text;
+
+    if (typeof result?.text === 'string' && result.text.trim()) {
+      const cleanText = result.text.trim();
+      fullText = fullText ? `${fullText} ${cleanText}` : cleanText;
     }
-    if (result.duration) {
+
+    if (Number.isFinite(result?.duration) && result.duration > 0) {
       lastEndTime = Math.max(lastEndTime, offsetSec + result.duration);
     }
   }
 
-  // Sort words by start_time to handle any overlap at chunk boundaries
+  // Urutkan kata berdasarkan start_time
   allWords.sort((a, b) => a.start_time - b.start_time);
+
+  // Jika fullText masih kosong namun words ada, susun teks dari kata-kata
+  if (!fullText && allWords.length > 0) {
+    fullText = allWords.map((w) => w.word).join(' ').trim();
+  }
+
+  const finalDuration = lastEndTime > 0
+    ? Number(lastEndTime.toFixed(2))
+    : (allWords.length > 0 ? allWords[allWords.length - 1].end_time : null);
 
   return {
     text: fullText,
     language: chunkResults[0]?.result?.language || 'indonesian',
-    duration: lastEndTime || null,
+    duration: finalDuration,
     words: allWords,
     segments: [],
     audioPath: chunkResults[0]?.result?.audioPath || '',

@@ -16,6 +16,7 @@
     "google:check": "node scripts/check-google.js"
   },
   "dependencies": {
+    "@ffprobe-installer/ffprobe": "^2.1.2",
     "@prisma/client": "6.19.3",
     "cookie-session": "^2.1.1",
     "cors": "^2.8.5",

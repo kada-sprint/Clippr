@@ -41,19 +41,23 @@ function createProjectMediaCleanup({ mediaRoot = path.resolve(__dirname, '../..'
       }
       for (const clip of project.clips) {
         if (!UUID.test(clip.id)) throw unsafe();
-        const clipRoot = path.join(root, project.id, clip.id);
+        const clipRoot = path.join(root, 'uploads', project.id, clip.id);
+        const legacyClipRoot = path.join(root, project.id, clip.id);
         for (const storedPath of [clip.clipVideoPath, clip.subtitledVideoPath, clip.srtPath]) {
           if (!storedPath) continue;
           const target = path.resolve(root, storedPath);
-          if (path.dirname(target) !== clipRoot || !['.mp4', '.srt'].includes(path.extname(target).toLowerCase())) throw unsafe();
+          const dir = path.dirname(target);
+          if ((dir !== clipRoot && dir !== legacyClipRoot) || !['.mp4', '.srt'].includes(path.extname(target).toLowerCase())) throw unsafe();
           targets.add(target);
         }
         // Failed renders may leave outputs before their paths reach the database.
-        targets.add(path.join(clipRoot, 'vertical.mp4'));
-        targets.add(path.join(clipRoot, 'subtitled.mp4'));
-        if (await inspect(clipRoot, true)) {
-          for (const name of await files.readdir(clipRoot)) {
-            if (temporarySubtitle.test(name)) targets.add(path.join(clipRoot, name));
+        for (const cRoot of [clipRoot, legacyClipRoot]) {
+          targets.add(path.join(cRoot, 'vertical.mp4'));
+          targets.add(path.join(cRoot, 'subtitled.mp4'));
+          if (await inspect(cRoot, true)) {
+            for (const name of await files.readdir(cRoot)) {
+              if (temporarySubtitle.test(name)) targets.add(path.join(cRoot, name));
+            }
           }
         }
       }

@@ -1,6 +1,7 @@
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('node:path');
 const fs = require('node:fs');
+const os = require('node:os');
 const crypto = require('node:crypto');
 const AppError = require('./app-error');
 
@@ -42,6 +43,40 @@ if (!ffmpegBinaryPath) {
 
 if (ffmpegBinaryPath) {
   ffmpeg.setFfmpegPath(ffmpegBinaryPath);
+}
+
+// Konfigurasi binary FFprobe:
+// 1. Utamakan variabel environment FFPROBE_PATH jika ditentukan
+// 2. Gunakan package @ffprobe-installer/ffprobe jika tersedia
+// 3. Fallback ke ffprobe-static jika tersedia
+let ffprobeBinaryPath = process.env.FFPROBE_PATH || null;
+
+if (!ffprobeBinaryPath) {
+  try {
+    const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
+    if (ffprobeInstaller?.path) {
+      ffprobeBinaryPath = ffprobeInstaller.path;
+    }
+  } catch {
+    // @ffprobe-installer tidak tersedia
+  }
+}
+
+if (!ffprobeBinaryPath) {
+  try {
+    const ffprobeStatic = require('ffprobe-static');
+    if (ffprobeStatic?.path) {
+      ffprobeBinaryPath = ffprobeStatic.path;
+    } else if (typeof ffprobeStatic === 'string') {
+      ffprobeBinaryPath = ffprobeStatic;
+    }
+  } catch {
+    // ffprobe-static tidak tersedia
+  }
+}
+
+if (ffprobeBinaryPath) {
+  ffmpeg.setFfprobePath(ffprobeBinaryPath);
 }
 
 /**
@@ -150,26 +185,41 @@ function splitAudioChunk(audioPath, startSec, durationSec) {
 
     const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     const outputFilename = `chunk-${uniqueSuffix}.mp3`;
-    const outputPath = path.join(AUDIO_DIR, outputFilename);
+    // Simpan file chunk temporer di folder temporer OS (os.tmpdir())
+    // agar penambahan file sementara tidak memicu restart pada Node.js --watch
+    const outputPath = path.join(os.tmpdir(), outputFilename);
 
-    ffmpeg(audioPath)
-      .setStartTime(startSec)
-      .setDuration(durationSec)
-      .noVideo()
-      .audioChannels(1)
-      .audioFrequency(16000)
-      .audioCodec('libmp3lame')
-      .audioBitrate('64k')
-      .format('mp3')
-      .output(outputPath)
-      .on('end', () => resolve(outputPath.replaceAll('\\', '/')))
-      .on('error', (err) => {
-        if (fs.existsSync(outputPath)) {
-          try { fs.unlinkSync(outputPath); } catch {}
-        }
-        reject(new AppError(500, 'CHUNK_SPLIT_FAILED', `Gagal memotong audio: ${err.message}`));
-      })
-      .run();
+    function runSplit(withPreset = true) {
+      let command = ffmpeg(audioPath)
+        .setStartTime(startSec)
+        .setDuration(durationSec)
+        .noVideo()
+        .audioChannels(1)
+        .audioFrequency(16000)
+        .audioCodec('libmp3lame')
+        .audioBitrate('64k')
+        .format('mp3');
+
+      if (withPreset) {
+        command = command.outputOptions(['-preset ultrafast']);
+      }
+
+      command
+        .output(outputPath)
+        .on('end', () => resolve(outputPath.replaceAll('\\', '/')))
+        .on('error', (err) => {
+          if (withPreset && err.message && err.message.toLowerCase().includes('preset')) {
+            return runSplit(false);
+          }
+          if (fs.existsSync(outputPath)) {
+            try { fs.unlinkSync(outputPath); } catch {}
+          }
+          reject(new AppError(500, 'CHUNK_SPLIT_FAILED', `Gagal memotong audio: ${err.message}`));
+        })
+        .run();
+    }
+
+    runSplit(true);
   });
 }
 
