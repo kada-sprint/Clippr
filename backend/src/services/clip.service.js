@@ -9,7 +9,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 const ALLOWED_LAYOUTS = ['slide-cam', 'talking-head', 'slide-only'];
 const ALLOWED_SUBTITLE_STYLES = ['clean', 'active_word_highlight'];
-const MUTABLE_FIELDS = ['title', 'startTime', 'endTime', 'transcriptJson', 'subtitleStyle'];
+const MUTABLE_FIELDS = ['title', 'startTime', 'endTime', 'transcriptJson', 'subtitleStyle', 'horizontalOffset'];
 
 function validateClipId(clipId) {
   if (typeof clipId !== 'string' || !UUID_PATTERN.test(clipId)) {
@@ -67,6 +67,14 @@ function createClipService({
           throw new AppError(400, 'INVALID_SUBTITLE_STYLE', 'Gaya subtitle tidak valid.');
         }
 
+        if (sanitized.horizontalOffset !== undefined) {
+          const val = Number(sanitized.horizontalOffset);
+          if (Number.isNaN(val) || val < -0.4 || val > 0.4) {
+            throw new AppError(400, 'INVALID_HORIZONTAL_OFFSET', 'Posisi horizontal harus antara -0.4 dan 0.4.');
+          }
+          sanitized.horizontalOffset = val;
+        }
+
         if (sanitized.startTime !== undefined && sanitized.endTime !== undefined) {
           if (Number(sanitized.startTime) >= Number(sanitized.endTime)) {
             throw new AppError(400, 'INVALID_TIME_RANGE', 'Waktu mulai harus sebelum waktu selesai.');
@@ -114,6 +122,7 @@ function createClipService({
               Number(clip.endTime),
               verticalPath,
               layout,
+              { horizontalOffset: clip.horizontalOffset ?? 0 },
             );
 
             if (!reframeResult.success) {
