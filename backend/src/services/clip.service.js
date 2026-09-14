@@ -116,16 +116,22 @@ function createClipService({
 
         setImmediate(async () => {
           try {
+            const clipDuration = Number(clip.endTime) - Number(clip.startTime);
+            const timeoutMs = layout === 'slide-only'
+              ? Math.max(120_000, clipDuration * 2_000)
+              : Math.max(60_000, clipDuration * 1_500);
+
             const reframeResult = await renderClip(
               project.sourceVideoPath,
               Number(clip.startTime),
               Number(clip.endTime),
               verticalPath,
               layout,
-              { horizontalOffset: clip.horizontalOffset ?? 0 },
+              { horizontalOffset: clip.horizontalOffset ?? 0, timeoutMs },
             );
 
             if (!reframeResult.success) {
+              console.error(`[Clip Render] Reframe failed for clip ${clipId}:`, reframeResult.error);
               await clipRepository.updateById(clipId, { status: 'error' });
               return;
             }
@@ -148,6 +154,7 @@ function createClipService({
                   exportExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
                 });
               } else {
+                console.error(`[Clip Render] Subtitle burn failed for clip ${clipId}:`, subtitleResult.error);
                 await clipRepository.updateById(clipId, { status: 'error' });
               }
             } else {
@@ -159,7 +166,8 @@ function createClipService({
                 exportExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
               });
             }
-          } catch {
+          } catch (err) {
+            console.error(`[Clip Render] Unexpected error for clip ${clipId}:`, err.message || err);
             await clipRepository.updateById(clipId, { status: 'error' });
           }
         });
