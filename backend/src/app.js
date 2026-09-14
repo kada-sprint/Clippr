@@ -8,6 +8,8 @@ const { createProjectRoutes } = require('./routes/project.routes');
 const { createUploadRoutes } = require('./routes/upload.routes');
 const { createClipRoutes } = require('./routes/clip.routes');
 const { createClipEditRoutes } = require('./routes/clip-edit.routes');
+const { createMediaRoutes } = require('./routes/media.routes');
+const { createMediaService } = require('./services/media.service');
 const errorHandler = require('./middlewares/error-handler');
 
 function createApp({
@@ -30,6 +32,7 @@ function createApp({
   app.use('/api/projects', createUploadRoutes({ uploadService, sessionSecret, frontendOrigin, production }));
   app.use('/api/projects', createClipRoutes({ clipService, sessionSecret, frontendOrigin, production }));
   app.use('/api', createClipEditRoutes({ clipService, sessionSecret, frontendOrigin, production }));
+  app.use('/api/media', createMediaRoutes({ mediaService: createMediaService(), sessionSecret }));
   app.use((req, res, next) => next(new AppError(404, 'ROUTE_NOT_FOUND', 'Endpoint tidak ditemukan.')));
   app.use(errorHandler);
   return app;

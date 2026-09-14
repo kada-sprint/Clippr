@@ -41,6 +41,13 @@ export default function EditorPage() {
 
   const clip = clips.find((item) => item.id === selectedId);
 
+  const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const videoSrc = clip?.subtitledVideoPath
+    ? `${API_BASE}/api/media/${validProjectId}/${clip.id}/subtitled.mp4`
+    : clip?.clipVideoPath
+    ? `${API_BASE}/api/media/${validProjectId}/${clip.id}/vertical.mp4`
+    : null;
+
   const originalValues = useMemo(() => {
     if (!clip) return null;
     return {
@@ -295,22 +302,32 @@ export default function EditorPage() {
                 </div>
                 <div className="editor-canvas">
                   <span className="editor-canvas-label">CLIPPR</span>
-                  <div className="editor-presenter">
-                    <div>
-                      <Icon name="user" size={66} />
+                  {clip.status === 'rendering' && (
+                    <div className="editor-canvas-processing">
+                      <Icon name="clock" size={32} />
+                      <span>Rendering…</span>
                     </div>
-                    <span>Ilustrasi pembicara</span>
-                  </div>
-                  <p className="editor-caption">
-                    {transcript?.words
-                      ? transcript.words.map((w, i) => (
-                          <span key={i}>
-                            <mark>{editedWords[i] !== undefined ? editedWords[i] : w.word}</mark>
-                            {' '}
-                          </span>
-                        ))
-                      : 'Teks subtitle akan muncul di sini.'}
-                  </p>
+                  )}
+                  {clip.status === 'rendered' && videoSrc && (
+                    <video
+                      key={`${clip.id}-${clip.status}`}
+                      src={videoSrc}
+                      controls
+                      className="editor-video"
+                    />
+                  )}
+                  {clip.status === 'error' && (
+                    <div className="editor-canvas-error">
+                      <Icon name="close" size={32} />
+                      <span>Gagal merender</span>
+                    </div>
+                  )}
+                  {(!clip.status || clip.status === 'pending' || clip.status === 'needs_review') && (
+                    <div className="editor-canvas-placeholder">
+                      <Icon name="video" size={32} />
+                      <span>Belum ada video</span>
+                    </div>
+                  )}
                   <span className="editor-canvas-duration">{duration} detik</span>
                 </div>
               </section>
