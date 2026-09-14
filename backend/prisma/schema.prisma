@@ -60,6 +60,7 @@ model Clip {
   status            String    @default("pending")
   renderedAt        DateTime? @map("rendered_at") @db.Timestamptz(3)
   exportExpiresAt   DateTime? @map("export_expires_at") @db.Timestamptz(3)
+  horizontalOffset  Float     @default(0) @map("horizontal_offset")
   project           Project   @relation(fields: [projectId], references: [id], onDelete: Restrict)
 
   @@index([projectId])
