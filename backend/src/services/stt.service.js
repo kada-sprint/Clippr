@@ -20,7 +20,7 @@ function sanitizeBaseUrl(inputUrl) {
 }
 
 /**
- * Melakukan parsing dan normalisasi respons mentah dari STT API (Hugging Face Whisper / OpenAI)
+ * Melakukan parsing dan normalisasi respons mentah dari STT API (Elice API / Hugging Face Whisper / OpenAI)
  * Menjamin kepatuhan REQ-2.1 (Word-Level Timestamps: word, start_time, end_time, confidence)
  * @param {any} raw - Respons mentah (JSON objek, array, atau string) dari server STT
  * @param {string} [audioFilePath=''] - Path audio lokal untuk referensi
@@ -36,7 +36,7 @@ function normalizeSTTResponse(raw, audioFilePath = '') {
     }
   }
 
-  // Jika response berupa array (format khas pipeline Hugging Face)
+  // Jika response berupa array
   if (Array.isArray(data)) {
     data = data[0] || {};
   }
@@ -50,18 +50,64 @@ function normalizeSTTResponse(raw, audioFilePath = '') {
     }
   }
 
-  let text = String(data?.text || data?.transcription || data?.transcript || '').trim();
+  // Elice API membungkus hasil transkripsi di dalam objek `transcript`:
+  // { "_result": { "status": "ok" }, "transcript": { "text": "...", "words": [...] } }
+  const transcriptObj = (data?.transcript && typeof data.transcript === 'object' && !Array.isArray(data.transcript))
+    ? data.transcript
+    : null;
+
+  // 1. Ekstraksi String Text Murni (Pastikan string murni, bukan object/array atau "[object Object]")
+  let rawTextCandidate = '';
+  if (typeof transcriptObj?.text === 'string' && transcriptObj.text.trim()) {
+    rawTextCandidate = transcriptObj.text;
+  } else if (typeof data?.text === 'string' && data.text.trim()) {
+    rawTextCandidate = data.text;
+  } else if (typeof transcriptObj?.transcription === 'string' && transcriptObj.transcription.trim()) {
+    rawTextCandidate = transcriptObj.transcription;
+  } else if (typeof data?.transcription === 'string' && data.transcription.trim()) {
+    rawTextCandidate = data.transcription;
+  } else if (typeof data?.transcript === 'string' && data.transcript.trim()) {
+    rawTextCandidate = data.transcript;
+  }
+
+  let text = rawTextCandidate.trim();
   let wordList = [];
 
-  // Format 1: Format OpenAI standar (array words)
-  if (Array.isArray(data?.words) && data.words.length > 0) {
-    wordList = data.words;
+  // 2. Ekstraksi Array Words (REQ-2.1)
+  // Cek transcript.words (Elice API), data.words (OpenAI), data.chunks (Hugging Face), segments
+  let rawWordsArray = null;
+  if (Array.isArray(transcriptObj?.words) && transcriptObj.words.length > 0) {
+    rawWordsArray = transcriptObj.words;
+  } else if (Array.isArray(data?.words) && data.words.length > 0) {
+    rawWordsArray = data.words;
   }
-  // Format 2: Format Hugging Face / vLLM / Elice Whisper (array chunks)
-  else if (Array.isArray(data?.chunks) && data.chunks.length > 0) {
-    wordList = data.chunks.map((chunk) => {
-      let start = 0;
-      let end = 0;
+
+  if (rawWordsArray) {
+    wordList = rawWordsArray.map((item) => {
+      if (typeof item === 'string') {
+        return { word: item.trim(), start: null, end: null, confidence: 1.0 };
+      }
+      const wordText = String(item?.word || item?.text || '').trim();
+      let start = item?.start ?? item?.start_time;
+      let end = item?.end ?? item?.end_time;
+      if (Array.isArray(item?.timestamp)) {
+        start = item.timestamp[0];
+        end = item.timestamp[1];
+      }
+      return {
+        word: wordText,
+        start: Number.isFinite(Number(start)) ? Number(start) : null,
+        end: Number.isFinite(Number(end)) ? Number(end) : null,
+        confidence: typeof item?.confidence === 'number' ? item.confidence : 1.0,
+      };
+    });
+  }
+  // Format Chunks (Hugging Face)
+  else if (Array.isArray(transcriptObj?.chunks || data?.chunks)) {
+    const chunks = transcriptObj?.chunks || data?.chunks;
+    wordList = chunks.map((chunk) => {
+      let start = null;
+      let end = null;
       if (Array.isArray(chunk.timestamp)) {
         start = chunk.timestamp[0] ?? 0;
         end = chunk.timestamp[1] ?? start;
@@ -73,20 +119,20 @@ function normalizeSTTResponse(raw, audioFilePath = '') {
         end = chunk.end ?? chunk.end_time ?? start;
       }
       return {
-        word: (chunk.text || chunk.word || '').trim(),
-        start,
-        end,
+        word: String(chunk.text || chunk.word || '').trim(),
+        start: Number.isFinite(Number(start)) ? Number(start) : null,
+        end: Number.isFinite(Number(end)) ? Number(end) : null,
         confidence: chunk.confidence ?? 1.0,
       };
     });
   }
-  // Format 3: Format segments
-  else if (Array.isArray(data?.segments) && data.segments.length > 0) {
-    for (const segment of data.segments) {
+  // Format Segments (Whisper segments)
+  else if (Array.isArray(transcriptObj?.segments || data?.segments)) {
+    const segments = transcriptObj?.segments || data?.segments;
+    for (const segment of segments) {
       if (Array.isArray(segment.words) && segment.words.length > 0) {
         wordList.push(...segment.words);
       } else {
-        // Fallback: estimasi waktu per kata dari segmen kalimat jika kata per kata tidak tersedia
         const segText = String(segment.text || '').trim();
         const tokens = segText.split(/\s+/).filter(Boolean);
         const segStart = Number(segment.start ?? 0);
@@ -106,15 +152,15 @@ function normalizeSTTResponse(raw, audioFilePath = '') {
     }
   }
 
-  // Jika teks kosong tapi ada kata-kata di wordList, gabungkan jadi teks utuh
+  // Jika teks masih kosong tapi ada kata di wordList, susun teks dari kata
   if (!text && wordList.length > 0) {
     text = wordList.map((w) => w.word || w.text || '').filter(Boolean).join(' ').trim();
   }
 
-  // Fallback: Jika ada teks tapi tidak ada kata di wordList sama sekali
+  // Fallback: Jika ada teks tapi tidak ada kata di wordList, lakukan split proporsional
   if (text && wordList.length === 0) {
-    const tokens = text.split(/\s+/).filter(Boolean);
-    const estDuration = Number(data?.duration) || tokens.length * 0.4;
+    const tokens = text.split(/\s+/).filter((tok) => tok && tok !== '[object' && tok !== 'Object]');
+    const estDuration = Number(transcriptObj?.duration || data?.duration) || (tokens.length * 0.4);
     const step = estDuration / Math.max(1, tokens.length);
     wordList = tokens.map((tok, idx) => ({
       word: tok,
@@ -124,24 +170,37 @@ function normalizeSTTResponse(raw, audioFilePath = '') {
     }));
   }
 
-  // Normalisasi setiap kata sesuai kontrak REQ-2.1: word, start_time, end_time, confidence
+  // 3. Normalisasi setiap kata sesuai kontrak REQ-2.1: { word, start_time, end_time, confidence }
   const normalizedWords = wordList
-    .map((item) => {
-      const textVal = String(item.word || item.text || '').trim();
-      const startVal = Number(item.start ?? item.start_time ?? (Array.isArray(item.timestamp) ? item.timestamp[0] : 0));
-      const endVal = Number(item.end ?? item.end_time ?? (Array.isArray(item.timestamp) ? item.timestamp[1] : startVal));
+    .map((item, idx) => {
+      const rawWord = String(item.word || item.text || '').trim();
+      // Cegah kebocoran string [object Object]
+      const wordText = (rawWord === '[object Object]' || rawWord === '[object' || rawWord === 'Object]')
+        ? ''
+        : rawWord;
+
+      let startVal = Number(item.start ?? item.start_time ?? (Array.isArray(item.timestamp) ? item.timestamp[0] : null));
+      let endVal = Number(item.end ?? item.end_time ?? (Array.isArray(item.timestamp) ? item.timestamp[1] : null));
+
+      // Jika start atau end tidak valid, gunakan estimasi urutan
+      if (!Number.isFinite(startVal)) {
+        startVal = Number((idx * 0.4).toFixed(2));
+      }
+      if (!Number.isFinite(endVal) || endVal < startVal) {
+        endVal = Number((startVal + 0.35).toFixed(2));
+      }
 
       return {
-        word: textVal,
-        start_time: Number.isFinite(startVal) ? startVal : 0,
-        end_time: Number.isFinite(endVal) ? endVal : (Number.isFinite(startVal) ? startVal : 0),
-        confidence: typeof item.confidence === 'number' ? item.confidence : 1.0,
+        word: wordText,
+        start_time: startVal,
+        end_time: endVal,
+        confidence: typeof item.confidence === 'number' && Number.isFinite(item.confidence) ? item.confidence : 1.0,
       };
     })
     .filter((item) => item.word.length > 0);
 
   // Hitung durasi total audio
-  let duration = Number(data?.duration);
+  let duration = Number(transcriptObj?.duration || data?.duration);
   if (!Number.isFinite(duration) || duration <= 0) {
     if (normalizedWords.length > 0) {
       duration = normalizedWords[normalizedWords.length - 1].end_time;
@@ -151,11 +210,11 @@ function normalizeSTTResponse(raw, audioFilePath = '') {
   }
 
   return {
-    text: text.trim(),
-    language: data?.language || 'indonesian',
+    text: text,
+    language: transcriptObj?.language || data?.language || 'indonesian',
     duration,
     words: normalizedWords,
-    segments: Array.isArray(data?.segments) ? data.segments : [],
+    segments: Array.isArray(transcriptObj?.segments || data?.segments) ? (transcriptObj?.segments || data?.segments) : [],
     audioPath: audioFilePath ? audioFilePath.replaceAll('\\', '/') : '',
   };
 }
@@ -296,6 +355,7 @@ async function transcribeAudio(audioFilePath, customVocabulary = '') {
   // Normalisasi ke format baku REQ-2.1
   const normalized = normalizeSTTResponse(parsedJson, audioFilePath);
   console.log(`[STT] Hasil parsing: ${normalized.words.length} kata terdeteksi, durasi: ${normalized.duration}s`);
+  console.log(`[STT] Text preview: "${normalized.text.slice(0, 150)}..."`);
 
   return normalized;
 }
