@@ -10,6 +10,7 @@ function createUploadRoutes({ uploadService, sessionSecret, frontendOrigin, prod
   const sameOrigin = requireSameOrigin(frontendOrigin);
   const upload = createUploadMiddleware();
 
+  router.post('/upload', session, requireAuth, sameOrigin, upload, controller.directUpload);
   router.post('/:id/source', session, requireAuth, sameOrigin, upload, controller.upload);
   return router;
 }

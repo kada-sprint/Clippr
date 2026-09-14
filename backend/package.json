@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "node --watch server.js",
+    "dev": "node --watch-path=src server.js",
     "start": "node server.js",
     "test": "node --test",
     "db:validate": "prisma validate",

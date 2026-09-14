@@ -19,6 +19,22 @@ function createUploadController({ uploadService = createUploadService() } = {}) 
         next(error);
       }
     },
+    async directUpload(req, res, next) {
+      try {
+        const project = await uploadService.directUpload({
+          userId: req.userId,
+          file: req.file,
+          selectedLayout: req.body?.selected_layout,
+          customVocabulary: req.body?.custom_vocabulary,
+        });
+        res.status(201).json({
+          message: 'Video berhasil diunggah dan ditranskripsi.',
+          project,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
   };
 }
 

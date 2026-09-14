@@ -10,6 +10,9 @@ const server = createApp().listen(env.port, '127.0.0.1', () => {
   console.log(`Cuplik API: http://localhost:${env.port}`);
 });
 
+// Sementara naikan TIMEOUT KE 30 MENIT (1.800.000 ms) buat test
+server.timeout = 1800000;
+server.keepAliveTimeout = 1800000;
 server.on('error', () => {
   console.error('API gagal dijalankan. Periksa apakah port tersedia.');
   process.exitCode = 1;

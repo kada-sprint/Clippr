@@ -14,6 +14,7 @@ function toPublicProject(project) {
     customVocabulary: project.customVocabulary,
     hasSource: Boolean(project.sourceVideoPath),
     clipCount: project._count?.clips ?? 0,
+    transcriptJson: project.transcriptJson,
     lastEditActivityAt: project.lastEditActivityAt,
     sourceExpiresAt: project.sourceExpiresAt,
     createdAt: project.createdAt,
@@ -55,10 +56,16 @@ function createUploadService({
         sourceAttached = true;
 
         audioPath = await extractAudio(file.path);
+        console.log(`[Upload Service] Audio berhasil diekstrak: ${audioPath}`);
+
         processingStage = 'transcribe';
         await repository.markTranscribing(projectId, userId);
+
         const transcriptJson = await transcribeAudio(audioPath, vocabulary);
+        console.log(`[Upload Service] Transkrip berhasil dibuat: ${transcriptJson.words?.length || 0} kata. Menyimpan ke database...`);
+
         const transcribed = await repository.saveTranscript(projectId, userId, transcriptJson);
+        console.log(`[Upload Service] Proyek ${projectId} berhasil diupdate ke status TRANSCRIBED.`);
         return toPublicProject(transcribed);
       } catch (error) {
         if (sourceAttached) {
@@ -74,6 +81,18 @@ function createUploadService({
       } finally {
         if (audioPath) await removeFile(audioPath);
       }
+    },
+
+    async directUpload({ userId, file, selectedLayout, customVocabulary }) {
+      const projectModel = require('../models/project.model');
+      const project = await projectModel.createForUser(userId);
+      return this.uploadSource({
+        projectId: project.id,
+        userId,
+        file,
+        selectedLayout,
+        customVocabulary,
+      });
     },
   };
 }

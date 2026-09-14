@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import Icon from '../../../components/Icon.jsx';
 
-export default function VocabularyInput() {
-  const [terms, setTerms] = useState([]);
+export default function VocabularyInput({ value, onChange }) {
+  const [internalTerms, setInternalTerms] = useState([]);
+  const terms = value !== undefined ? value : internalTerms;
   const [input, setInput] = useState('');
   const [message, setMessage] = useState('');
+
+  function updateTerms(nextTerms) {
+    setInternalTerms(nextTerms);
+    if (onChange) onChange(nextTerms);
+  }
 
   function addTerms(values) {
     const unique = [];
@@ -18,7 +24,11 @@ export default function VocabularyInput() {
       return false;
     }
     if (!unique.length) setMessage('Istilah kosong atau sudah ada di kamus.');
-    else { setTerms([...terms, ...unique]); setMessage(`${unique.length} istilah ditambahkan.`); }
+    else {
+      const next = [...terms, ...unique];
+      updateTerms(next);
+      setMessage(`${unique.length} istilah ditambahkan.`);
+    }
     return true;
   }
 
@@ -27,7 +37,7 @@ export default function VocabularyInput() {
       <div className="ingestion-section-title"><h2 id="vocabulary-title"><Icon name="edit" size={19} /> Kamus Istilah Teknis</h2><span className="vocabulary-count">{terms.length}/20 istilah terdaftar</span></div>
       <p className="ingestion-description" id="vocabulary-help">Tambahkan istilah khusus agar transkripsi mengenali materi Anda. Pisahkan dengan koma atau tekan Enter.</p>
       <div className="vocabulary-field">
-        {terms.map((term) => <span className="vocabulary-chip" key={term}>{term}<button type="button" aria-label={`Hapus istilah ${term}`} onClick={() => { setTerms(terms.filter((item) => item !== term)); setMessage(`${term} dihapus.`); }}><Icon name="close" size={13} /></button></span>)}
+        {terms.map((term) => <span className="vocabulary-chip" key={term}>{term}<button type="button" aria-label={`Hapus istilah ${term}`} onClick={() => { const next = terms.filter((item) => item !== term); updateTerms(next); setMessage(`${term} dihapus.`); }}><Icon name="close" size={13} /></button></span>)}
         <input aria-label="Istilah teknis" aria-describedby="vocabulary-help vocabulary-message" value={input} placeholder={terms.length ? '+ Ketik istilah lalu tekan Enter…' : 'Contoh: PyTorch, Prompt Engineering…'} onChange={(event) => {
           const value = event.target.value;
           const pieces = value.split(/[,\n]/);
