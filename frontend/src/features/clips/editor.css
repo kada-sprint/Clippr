@@ -65,6 +65,7 @@
   width: 100%;
   accent-color: #3894ff;
   margin: 4px 0;
+  padding: 0;
 }
 .editor-field small { font-size: 10px; line-height: 1.6; }
 .editor-subtitle-style { border: 0; padding: 0; margin: 20px 0 0; display: flex; gap: 10px; flex-wrap: wrap; }
