@@ -158,7 +158,7 @@ export default function StudioLayout() {
         <nav aria-label="Navigasi studio">
           <NavLink to="/projects" end onClick={closeSidebar}>
             <Icon name="layers" size={19} />
-            My Project
+            Project Saya
           </NavLink>
           {/* <NavLink to="/upload" end onClick={closeSidebar}>
             <Icon name="upload" size={19} />
