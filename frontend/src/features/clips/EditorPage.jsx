@@ -427,12 +427,12 @@ export default function EditorPage() {
                     <button
                       className="button primary"
                       onClick={handleSave}
-                      disabled={!isDirty || saveLoading}
+                      disabled={saveLoading}
                     >
                       {saveLoading ? 'Menyimpan…' : 'Simpan'}
                     </button>
                     <button
-                      className="button"
+                      className="button secondary"
                       onClick={handleRender}
                       disabled={!canRender || renderLoading}
                     >

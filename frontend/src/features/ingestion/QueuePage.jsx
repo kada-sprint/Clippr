@@ -143,7 +143,7 @@ export default function QueuePage() {
           </p>
         </div>
         <div className="queue-actions">
-          <Link className="button secondary" to="/editor"><Icon name="edit" size={16} />Buka di Editor</Link>
+          <Link className="button secondary" to={`/editor?projectId=${project.id}`}><Icon name="edit" size={16} />Buka di Editor</Link>
           <Link className="button primary" to="/upload"><Icon name="plus" size={17} />Unggah Video Baru</Link>
         </div>
       </aside>

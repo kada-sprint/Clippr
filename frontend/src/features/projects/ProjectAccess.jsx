@@ -40,7 +40,9 @@ export default function ProjectAccess({ children }) {
     <ProjectRequest
       key={`${user.id}:${projectId}:${location.pathname}`}
       projectId={projectId}
-    />
+    >
+      {children}
+    </ProjectRequest>
   );
 }
 
@@ -63,7 +65,7 @@ function AccessError({ title, message, onRetry }) {
   );
 }
 
-function ProjectRequest({ projectId }) {
+function ProjectRequest({ projectId, children }) {
   const { refreshSession } = useAuth();
   const location = useLocation();
   const [attempt, setAttempt] = useState(0);
@@ -133,30 +135,5 @@ function ProjectRequest({ projectId }) {
   }
 
   const { project } = result;
-  return (
-    <section className="section" aria-label="Akses proyek">
-      <div className="section-heading">
-        <h1>
-          {location.pathname === "/editor" ? "Hasil proyek" : "Progres proyek"}
-        </h1>
-        <p role="status">
-          Status terakhir:{" "}
-          {statusLabels[project.status] || "Status belum dikenali"}
-          {project.processingStage &&
-            ` · ${stageLabels[project.processingStage] || "Tahap belum dikenali"}`}
-        </p>
-        <p>
-          Proyek berhasil dibuka. Tampilan progres dan hasil klip untuk proyek
-          ini belum tersedia.
-        </p>
-      </div>
-      <button className="button secondary" onClick={reload}>
-        Muat ulang status
-      </button>
-      <button className="button primary" onClick={copyLink}>
-        Salin link proyek
-      </button>
-      <p role="status">{copyMessage}</p>
-    </section>
-  );
+  return children;
 }

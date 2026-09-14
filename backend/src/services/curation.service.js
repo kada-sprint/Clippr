@@ -139,7 +139,7 @@ function parseLlmResponse(rawResponse) {
   return { success: false, error: 'Validation failed for both main and fallback schemas' };
 }
 
-async function insertClips(prisma, projectId, segments, isFallback) {
+async function insertClips(prisma, projectId, segments, transcriptWords, isFallback) {
   const clips = [];
 
   for (const segment of segments) {
@@ -148,14 +148,37 @@ async function insertClips(prisma, projectId, segments, isFallback) {
       ? normalizeScore(segment.concept_score)
       : null;
 
+    const clipStart = segment.start_time_seconds;
+    const clipEnd = segment.end_time_seconds;
+
+    const wordsForClip = (transcriptWords || [])
+      .filter((w) => w.start_time >= clipStart && w.start_time < clipEnd)
+      .map((w) => ({
+        word: w.word,
+        start_time: Number((w.start_time - clipStart).toFixed(2)),
+        end_time: Number((w.end_time - clipStart).toFixed(2)),
+        confidence: w.confidence,
+      }));
+
     const clip = await prisma.clip.create({
       data: {
         id: clipId,
         projectId,
         title: segment.suggested_title,
-        startTime: segment.start_time_seconds,
-        endTime: segment.end_time_seconds,
-        transcriptJson: segment,
+        startTime: clipStart,
+        endTime: clipEnd,
+        transcriptJson: {
+          words: wordsForClip,
+          text: wordsForClip.map((w) => w.word).join(' '),
+          segment: {
+            start_time_seconds: clipStart,
+            end_time_seconds: clipEnd,
+            duration: segment.duration,
+            concept_score: segment.concept_score,
+            suggested_title: segment.suggested_title,
+            pedagogical_reason: segment.pedagogical_reason,
+          },
+        },
         conceptScore: normalizedScore,
         pedagogicalReason: segment.pedagogical_reason || 'Memerlukan review',
         status: isFallback || segment.concept_score === null ? 'needs_review' : 'pending',
@@ -239,6 +262,7 @@ async function curateClips(projectId, transcript, { callLlm = defaultCallLlm } =
         prisma,
         projectId,
         result.data.segments,
+        transcript.words,
         result.isFallback || false
       );
       allClips.push(...clips);
