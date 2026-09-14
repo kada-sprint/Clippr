@@ -1,6 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const Keygrip = require('keygrip');
+const prismaModule = require('../src/config/prisma');
 const { createApp } = require('../src/app');
 const { createProjectService } = require('../src/services/project.service');
 
@@ -40,6 +41,32 @@ async function login(baseUrl, credential = 'verified') {
   assert.equal(response.status, 200);
   return cookies(response);
 }
+
+test('clip list queries include subtitleStyle so editor state can be restored', async () => {
+  const originalGetPrisma = prismaModule.getPrisma;
+  const projectId = '11111111-1111-4111-8111-222222222222';
+
+  delete require.cache[require.resolve('../src/models/clip.model')];
+  prismaModule.getPrisma = () => ({
+    clip: {
+      findMany: async ({ where, orderBy, select }) => {
+        assert.deepEqual(where, { projectId });
+        assert.equal(orderBy.conceptScore, 'desc');
+        assert.equal(select.subtitleStyle, true);
+        return [];
+      },
+    },
+  });
+
+  try {
+    const { findManyByProjectId } = require('../src/models/clip.model');
+    const clips = await findManyByProjectId(projectId);
+    assert.deepEqual(clips, []);
+  } finally {
+    prismaModule.getPrisma = originalGetPrisma;
+    delete require.cache[require.resolve('../src/models/clip.model')];
+  }
+});
 
 function createMemoryRepository(seed = []) {
   const rows = seed.map((row) => ({ ...row }));

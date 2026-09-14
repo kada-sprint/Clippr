@@ -8,6 +8,7 @@ const clipSelect = {
   clipVideoPath: true,
   subtitledVideoPath: true,
   status: true,
+  subtitleStyle: true,
 };
 
 const clipSelectDetail = {
