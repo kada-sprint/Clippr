@@ -111,7 +111,71 @@ function extractAudio(inputVideoPath) {
   });
 }
 
+/**
+ * Mendapatkan durasi audio dalam detik menggunakan ffprobe
+ * @param {string} audioPath - Path file audio
+ * @returns {Promise<number>} Durasi dalam detik
+ */
+function getAudioDuration(audioPath) {
+  return new Promise((resolve, reject) => {
+    if (!audioPath || !fs.existsSync(audioPath)) {
+      return reject(new AppError(404, 'FILE_NOT_FOUND', `File audio tidak ditemukan: ${audioPath}`));
+    }
+
+    ffmpeg.ffprobe(audioPath, (err, metadata) => {
+      if (err) {
+        return reject(new AppError(500, 'FFPROBE_FAILED', `Gagal membaca durasi audio: ${err.message}`));
+      }
+      const duration = metadata?.format?.duration;
+      if (!Number.isFinite(duration) || duration <= 0) {
+        return reject(new AppError(500, 'DURATION_UNKNOWN', 'Tidak dapat menentukan durasi audio.'));
+      }
+      resolve(duration);
+    });
+  });
+}
+
+/**
+ * Memotong audio menjadi chunk pada offset tertentu
+ * @param {string} audioPath - Path file audio sumber
+ * @param {number} startSec - Detik mulai
+ * @param {number} durationSec - Durasi chunk dalam detik
+ * @returns {Promise<string>} Path file audio hasil potongan
+ */
+function splitAudioChunk(audioPath, startSec, durationSec) {
+  return new Promise((resolve, reject) => {
+    if (!audioPath || !fs.existsSync(audioPath)) {
+      return reject(new AppError(404, 'FILE_NOT_FOUND', `File audio tidak ditemukan: ${audioPath}`));
+    }
+
+    const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+    const outputFilename = `chunk-${uniqueSuffix}.mp3`;
+    const outputPath = path.join(AUDIO_DIR, outputFilename);
+
+    ffmpeg(audioPath)
+      .setStartTime(startSec)
+      .setDuration(durationSec)
+      .noVideo()
+      .audioChannels(1)
+      .audioFrequency(16000)
+      .audioCodec('libmp3lame')
+      .audioBitrate('64k')
+      .format('mp3')
+      .output(outputPath)
+      .on('end', () => resolve(outputPath.replaceAll('\\', '/')))
+      .on('error', (err) => {
+        if (fs.existsSync(outputPath)) {
+          try { fs.unlinkSync(outputPath); } catch {}
+        }
+        reject(new AppError(500, 'CHUNK_SPLIT_FAILED', `Gagal memotong audio: ${err.message}`));
+      })
+      .run();
+  });
+}
+
 module.exports = {
   extractAudio,
+  getAudioDuration,
+  splitAudioChunk,
   AUDIO_DIR,
 };

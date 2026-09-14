@@ -1,7 +1,7 @@
 const AppError = require('../utils/app-error');
 const uploadModel = require('../models/upload.model');
 const { extractAudio: defaultExtractAudio } = require('../utils/ffmpeg');
-const { transcribeAudio: defaultTranscribeAudio } = require('./stt.service');
+const { transcribeAudioChunked: defaultTranscribeAudio } = require('./stt.service');
 const { removeUploadedFile: defaultRemoveFile } = require('../middlewares/upload.middleware');
 const { validateAndFormatVocabulary, validateLayout, validateProjectId } = require('./project.service');
 const { curateClips } = require('./curation.service');

@@ -2,6 +2,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 const env = require('../config/env');
 const AppError = require('../utils/app-error');
+const { getAudioDuration, splitAudioChunk } = require('../utils/ffmpeg');
+
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 5000;
+const TIMEOUT_MS = 180_000;
+const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * Sanitasi Base URL agar selalu berformat http(s)://.../v1
@@ -269,67 +279,91 @@ async function transcribeAudio(audioFilePath, customVocabulary = '') {
   }
 
   const startTime = Date.now();
-  let response;
+  let lastError;
 
-  try {
-    // Timeout 180 detik (3 menit) untuk mengantisipasi proses Whisper pada video panjang
-    const timeoutSignal = AbortSignal.timeout(180000);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let response;
 
-    response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        accept: 'application/json',
-      },
-      body: formData,
-      signal: timeoutSignal,
-    });
-  } catch (networkError) {
-    if (networkError.name === 'TimeoutError' || networkError.name === 'AbortError') {
+    try {
+      const timeoutSignal = AbortSignal.timeout(TIMEOUT_MS);
+
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          accept: 'application/json',
+        },
+        body: formData,
+        signal: timeoutSignal,
+      });
+    } catch (networkError) {
+      if (networkError.name === 'TimeoutError' || networkError.name === 'AbortError') {
+        if (attempt < MAX_RETRIES) {
+          console.log(`[STT] Timeout pada percobaan ${attempt + 1}/${MAX_RETRIES + 1}, mencoba ulang...`);
+          await delay(BASE_DELAY_MS * Math.pow(2, attempt));
+          continue;
+        }
+        throw new AppError(
+          504,
+          'STT_GATEWAY_TIMEOUT',
+          'Permintaan ke STT API memakan waktu lebih dari 3 menit (Timeout). Silakan gunakan cuplikan video yang lebih pendek.'
+        );
+      }
       throw new AppError(
-        504,
-        'STT_GATEWAY_TIMEOUT',
-        'Permintaan ke STT API memakan waktu lebih dari 3 menit (Timeout). Silakan gunakan cuplikan video yang lebih pendek.'
+        502,
+        'STT_NETWORK_ERROR',
+        `Tidak dapat terhubung ke server STT API (${networkError.message}). Periksa koneksi internet server backend.`
       );
     }
-    throw new AppError(
-      502,
-      'STT_NETWORK_ERROR',
-      `Tidak dapat terhubung ke server STT API (${networkError.message}). Periksa koneksi internet server backend.`
-    );
-  }
 
-  const elapsedSec = ((Date.now() - startTime) / 1000).toFixed(1);
-  console.log(`[STT] Response HTTP ${response.status} diterima dalam ${elapsedSec}s`);
+    const elapsedSec = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[STT] Response HTTP ${response.status} diterima dalam ${elapsedSec}s (percobaan ${attempt + 1})`);
 
-  if (!response.ok) {
+    if (response.ok) {
+      const rawText = await response.text();
+      console.log(`[STT] Raw response size: ${rawText.length} bytes`);
+      console.log(`[STT] Raw response preview: ${rawText.slice(0, 300)}`);
+
+      let parsedJson;
+      try {
+        parsedJson = JSON.parse(rawText);
+      } catch (parseErr) {
+        console.warn('[STT] Response bukan JSON valid, menggunakan teks mentah:', parseErr.message);
+        parsedJson = { text: rawText };
+      }
+
+      const normalized = normalizeSTTResponse(parsedJson, audioFilePath);
+      console.log(`[STT] Hasil parsing: ${normalized.words.length} kata terdeteksi, durasi: ${normalized.duration}s`);
+      console.log(`[STT] Text preview: "${normalized.text.slice(0, 150)}..."`);
+      return normalized;
+    }
+
     const errorText = await response.text().catch(() => '');
     console.error(`[STT API Error] HTTP ${response.status}:`, errorText);
 
-    // Penanganan khusus status 504 (Cloudflare Gateway Timeout)
-    if (response.status === 504 || errorText.toLowerCase().includes('gateway time-out') || errorText.toLowerCase().includes('gateway timeout')) {
-      throw new AppError(
-        504,
-        'STT_GATEWAY_TIMEOUT',
-        'Server STT (Elice) mengalami Gateway Timeout (504). Beban komputasi model AI melampaui batas waktu Cloudflare. Silakan coba unggah video yang lebih pendek atau coba kembali.'
-      );
+    lastError = { status: response.status, text: errorText };
+
+    if (RETRYABLE_STATUSES.has(response.status) && attempt < MAX_RETRIES) {
+      const retryAfter = response.headers?.get('retry-after');
+      const waitMs = retryAfter
+        ? Math.max(parseInt(retryAfter, 10) * 1000, BASE_DELAY_MS)
+        : BASE_DELAY_MS * Math.pow(2, attempt);
+      console.log(`[STT] Retryable error ${response.status}, mencoba ulang dalam ${waitMs / 1000}s...`);
+      await delay(waitMs);
+      continue;
     }
 
-    // Penanganan khusus status 502 (Bad Gateway)
-    if (response.status === 502 || errorText.toLowerCase().includes('bad gateway')) {
-      throw new AppError(
-        502,
-        'STT_BAD_GATEWAY',
-        'Server STT (Elice) mengalami Bad Gateway (502). Layanan model origin sedang tidak tersedia atau dalam proses restart.'
-      );
+    if (response.status === 504 || errorText.includes('gateway time-out') || errorText.includes('gateway timeout')) {
+      throw new AppError(504, 'STT_GATEWAY_TIMEOUT',
+        'Server STT (Elice) mengalami Gateway Timeout (504). Silakan coba unggah video yang lebih pendek atau coba kembali.');
     }
-
+    if (response.status === 502 || errorText.includes('bad gateway')) {
+      throw new AppError(502, 'STT_BAD_GATEWAY',
+        'Server STT (Elice) mengalami Bad Gateway (502). Layanan model origin sedang tidak tersedia.');
+    }
     if (response.status === 503) {
-      throw new AppError(
-        503,
-        'STT_SERVICE_UNAVAILABLE',
-        'Layanan STT API sementara tidak dapat menerima permintaan (503 Service Unavailable).'
-      );
+      throw new AppError(503, 'STT_SERVICE_UNAVAILABLE',
+        'Layanan STT API sementara tidak dapat menerima permintaan (503).');
     }
 
     throw new AppError(
@@ -339,29 +373,139 @@ async function transcribeAudio(audioFilePath, customVocabulary = '') {
     );
   }
 
-  // Respons berhasil: baca JSON mentah
-  const rawText = await response.text();
-  console.log(`[STT] Raw response size: ${rawText.length} bytes`);
-  console.log(`[STT] Raw response preview: ${rawText.slice(0, 300)}`);
+  throw new AppError(
+    lastError?.status >= 500 ? 502 : 400,
+    'STT_API_ERROR',
+    `Gagal mentranskripsi audio setelah ${MAX_RETRIES + 1} percobaan: ${lastError?.text || 'unknown error'}`
+  );
+}
 
-  let parsedJson;
-  try {
-    parsedJson = JSON.parse(rawText);
-  } catch (parseErr) {
-    console.warn('[STT] Response bukan JSON valid, menggunakan teks mentah:', parseErr.message);
-    parsedJson = { text: rawText };
+const CHUNK_DURATION_SEC = 300; // 5 minutes per chunk
+
+/**
+ * Transkripsi audio dengan chunking otomatis untuk video panjang.
+ * Jika audio <= CHUNK_DURATION_SEC, gunakan transcribeAudio langsung.
+ * Jika lebih panjang, potong menjadi beberapa chunk, transkripsikan tiap chunk,
+ * dan gabungkan hasilnya. Chunk yang gagal dilewati (partial failure).
+ * @param {string} audioFilePath - Path file audio
+ * @param {string} [customVocabulary=''] - Kosakata kustom
+ * @param {Object} [options]
+ * @param {number} [options.chunkDurationSec=300] - Durasi per chunk dalam detik
+ * @returns {Promise<Object>} Transcript digabung
+ */
+async function transcribeAudioChunked(audioFilePath, customVocabulary = '', { chunkDurationSec = CHUNK_DURATION_SEC } = {}) {
+  if (!audioFilePath || !fs.existsSync(audioFilePath)) {
+    throw new AppError(400, 'AUDIO_FILE_NOT_FOUND', 'File audio untuk transkripsi tidak ditemukan di server.');
   }
 
-  // Normalisasi ke format baku REQ-2.1
-  const normalized = normalizeSTTResponse(parsedJson, audioFilePath);
-  console.log(`[STT] Hasil parsing: ${normalized.words.length} kata terdeteksi, durasi: ${normalized.duration}s`);
-  console.log(`[STT] Text preview: "${normalized.text.slice(0, 150)}..."`);
+  let duration;
+  try {
+    duration = await getAudioDuration(audioFilePath);
+  } catch (err) {
+    console.warn(`[STT Chunked] Gagal mendapatkan durasi, mencoba transkripsi langsung: ${err.message}`);
+    return transcribeAudio(audioFilePath, customVocabulary);
+  }
 
-  return normalized;
+  console.log(`[STT Chunked] Durasi audio: ${duration.toFixed(1)}s, chunk size: ${chunkDurationSec}s`);
+
+  // Audio pendek, transkripsi langsung tanpa chunking
+  if (duration <= chunkDurationSec) {
+    return transcribeAudio(audioFilePath, customVocabulary);
+  }
+
+  const chunkCount = Math.ceil(duration / chunkDurationSec);
+  console.log(`[STT Chunked] Memecah menjadi ${chunkCount} chunk`);
+
+  const chunkResults = [];
+  const tempChunkPaths = [];
+
+  for (let i = 0; i < chunkCount; i++) {
+    const startSec = i * chunkDurationSec;
+    const thisDuration = Math.min(chunkDurationSec, duration - startSec);
+    const offsetSec = startSec; // Timestamp offset for merging
+
+    let chunkPath;
+    try {
+      chunkPath = await splitAudioChunk(audioFilePath, startSec, thisDuration);
+      tempChunkPaths.push(chunkPath);
+    } catch (err) {
+      console.error(`[STT Chunked] Gagal memotong chunk ${i + 1}/${chunkCount}: ${err.message}`);
+      continue;
+    }
+
+    try {
+      console.log(`[STT Chunked] Transkripsi chunk ${i + 1}/${chunkCount} (offset ${offsetSec.toFixed(1)}s, durasi ${thisDuration.toFixed(1)}s)`);
+      const result = await transcribeAudio(chunkPath, customVocabulary);
+      chunkResults.push({ result, offsetSec });
+      console.log(`[STT Chunked] Chunk ${i + 1}/${chunkCount} berhasil: ${result.words?.length || 0} kata`);
+    } catch (err) {
+      console.error(`[STT Chunked] Chunk ${i + 1}/${chunkCount} gagal setelah retry: ${err.message}`);
+      // Partial failure: skip this chunk, continue with others
+    }
+  }
+
+  // Cleanup chunk files
+  for (const p of tempChunkPaths) {
+    try { await fs.promises.unlink(p); } catch {}
+  }
+
+  if (chunkResults.length === 0) {
+    throw new AppError(502, 'STT_ALL_CHUNKS_FAILED', 'Semua chunk transkripsi gagal. Periksa koneksi ke STT API.');
+  }
+
+  // Merge results
+  console.log(`[STT Chunked] Menggabungkan ${chunkResults.length}/${chunkCount} chunk yang berhasil`);
+  return mergeChunkResults(chunkResults);
+}
+
+/**
+ * Menggabungkan hasil transkripsi dari beberapa chunk
+ * @param {Array<{result: Object, offsetSec: number}>} chunkResults
+ * @returns {Object} Transcript gabungan
+ */
+function mergeChunkResults(chunkResults) {
+  // Sort by offset to maintain chronological order
+  chunkResults.sort((a, b) => a.offsetSec - b.offsetSec);
+
+  const allWords = [];
+  let fullText = '';
+  let lastEndTime = 0;
+
+  for (const { result, offsetSec } of chunkResults) {
+    if (result.words && result.words.length > 0) {
+      for (const word of result.words) {
+        allWords.push({
+          word: word.word,
+          start_time: Number((word.start_time + offsetSec).toFixed(2)),
+          end_time: Number((word.end_time + offsetSec).toFixed(2)),
+          confidence: word.confidence,
+        });
+      }
+    }
+    if (result.text) {
+      fullText += (fullText ? ' ' : '') + result.text;
+    }
+    if (result.duration) {
+      lastEndTime = Math.max(lastEndTime, offsetSec + result.duration);
+    }
+  }
+
+  // Sort words by start_time to handle any overlap at chunk boundaries
+  allWords.sort((a, b) => a.start_time - b.start_time);
+
+  return {
+    text: fullText,
+    language: chunkResults[0]?.result?.language || 'indonesian',
+    duration: lastEndTime || null,
+    words: allWords,
+    segments: [],
+    audioPath: chunkResults[0]?.result?.audioPath || '',
+  };
 }
 
 module.exports = {
   transcribeAudio,
+  transcribeAudioChunked,
   normalizeSTTResponse,
   sanitizeBaseUrl,
 };

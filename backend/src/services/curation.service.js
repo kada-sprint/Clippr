@@ -8,7 +8,7 @@ const fallbackOutputSchema = require('../utils/fallback-output-schema');
 const { parseFallback, ParseFailure } = require('./fallback_parser');
 
 const SCORE_MAX = 98;
-const MIN_CLIPS = 3;
+const MIN_CLIPS = 1;
 const MAX_CLIPS = 5;
 const OVERLAP_THRESHOLD = 0.5;
 

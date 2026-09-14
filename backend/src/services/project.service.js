@@ -64,7 +64,6 @@ function toDetail(project) {
   return {
     ...toSummary(project),
     customVocabulary: project.customVocabulary,
-    transcriptJson: project.transcriptJson,
     lastEditActivityAt: project.lastEditActivityAt,
     sourceExpiresAt: project.sourceExpiresAt,
   };
