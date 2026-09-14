@@ -134,7 +134,7 @@ function buildAss(words, style = 'clean') {
       let karaokeContent = '';
       for (const w of line) {
         const durationCs = Math.round((w.end_time - w.start_time) * 100);
-        karaokeContent += `\\k${durationCs}${w.word}`;
+        karaokeContent += `{\\k${durationCs}}${w.word}`;
       }
 
       dialogueEvents += `Dialogue: 0,${formatAssTime(lineStart)},${formatAssTime(lineEnd)},Default,,0,0,0,,${karaokeContent}\n`;
