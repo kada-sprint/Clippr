@@ -134,7 +134,7 @@ function buildAss(words, style = 'clean') {
       let karaokeContent = '';
       for (const w of line) {
         const durationCs = Math.round((w.end_time - w.start_time) * 100);
-        karaokeContent += `{\\k${durationCs}}${w.word}`;
+        karaokeContent += `{\\k${durationCs}}${w.word} `;
       }
 
       dialogueEvents += `Dialogue: 0,${formatAssTime(lineStart)},${formatAssTime(lineEnd)},Default,,0,0,0,,${karaokeContent}\n`;
@@ -158,7 +158,7 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Default,${styleDef.fontName},${styleDef.fontSize},${styleDef.primaryColour},&H000000FF,${styleDef.outlineColour},&H80000000,0,0,0,0,100,100,0,0,1,${styleDef.outlineWidth},1,2,${MARGIN_L},${MARGIN_R},${MARGIN_V},1
+Style: Default,${styleDef.fontName},${styleDef.fontSize},${styleDef.primaryColour},${HIGHLIGHT_COLOR},${styleDef.outlineColour},&H80000000,0,0,0,0,100,100,0,0,1,${styleDef.outlineWidth},1,2,${MARGIN_L},${MARGIN_R},${MARGIN_V},1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text

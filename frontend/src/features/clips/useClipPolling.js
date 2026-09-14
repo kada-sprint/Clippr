@@ -41,5 +41,5 @@ export default function useClipPolling(projectId) {
     };
   }, [projectId]);
 
-  return { clips, loading, error };
+  return { clips, setClips, loading, error };
 }

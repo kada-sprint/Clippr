@@ -20,7 +20,7 @@ export default function EditorPage() {
   const projectId = params.get('projectId');
   const validProjectId = projectId && UUID_PATTERN.test(projectId) ? projectId : null;
 
-  const { clips, loading, error } = useClipPolling(validProjectId);
+  const { clips, setClips, loading, error } = useClipPolling(validProjectId);
   const [selectedId, setSelectedId] = useState(null);
 
   const [editedTitle, setEditedTitle] = useState('');
@@ -180,13 +180,14 @@ export default function EditorPage() {
     if (!clip) return;
     setRenderLoading(true);
     try {
-      await renderClip(clip.id);
+      const updated = await renderClip(clip.id);
+      setClips((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
     } catch {
       // Error handled by status polling
     } finally {
       setRenderLoading(false);
     }
-  }, [clip]);
+  }, [clip, setClips]);
 
   const nudgeStart = (delta) => {
     const next = Math.max(0, editedStartTime + delta);
