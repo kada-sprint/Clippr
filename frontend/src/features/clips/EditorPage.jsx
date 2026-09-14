@@ -28,6 +28,7 @@ export default function EditorPage() {
   const [editedEndTime, setEditedEndTime] = useState(0);
   const [editedWords, setEditedWords] = useState({});
   const [editedSubtitleStyle, setEditedSubtitleStyle] = useState('clean');
+  const [editedHorizontalOffset, setEditedHorizontalOffset] = useState(0);
 
   const [transcript, setTranscript] = useState(null);
   const [transcriptLoading, setTranscriptLoading] = useState(false);
@@ -55,6 +56,7 @@ export default function EditorPage() {
       startTime: Number(clip.startTime),
       endTime: Number(clip.endTime),
       subtitleStyle: clip.subtitleStyle || 'clean',
+      horizontalOffset: clip.horizontalOffset ?? 0,
     };
   }, [clip]);
 
@@ -65,9 +67,10 @@ export default function EditorPage() {
       editedStartTime !== originalValues.startTime ||
       editedEndTime !== originalValues.endTime ||
       editedSubtitleStyle !== originalValues.subtitleStyle ||
+      editedHorizontalOffset !== originalValues.horizontalOffset ||
       Object.keys(editedWords).length > 0
     );
-  }, [editedTitle, editedStartTime, editedEndTime, editedSubtitleStyle, editedWords, originalValues]);
+  }, [editedTitle, editedStartTime, editedEndTime, editedSubtitleStyle, editedHorizontalOffset, editedWords, originalValues]);
 
   const duration = editedEndTime - editedStartTime;
 
@@ -86,6 +89,7 @@ export default function EditorPage() {
     setEditedStartTime(Number(clip.startTime));
     setEditedEndTime(Number(clip.endTime));
     setEditedSubtitleStyle(clip.subtitleStyle || 'clean');
+    setEditedHorizontalOffset(clip.horizontalOffset ?? 0);
     setEditedWords({});
     setSaveMessage(null);
 
@@ -133,6 +137,7 @@ export default function EditorPage() {
         startTime: editedStartTime,
         endTime: editedEndTime,
         subtitleStyle: editedSubtitleStyle,
+        horizontalOffset: editedHorizontalOffset,
         transcriptJson: words ? { words } : undefined,
       });
       setSelectedId(pendingSelectedId);
@@ -144,7 +149,7 @@ export default function EditorPage() {
     } finally {
       setSaveLoading(false);
     }
-  }, [clip, editedTitle, editedStartTime, editedEndTime, editedSubtitleStyle, editedWords, transcript, pendingSelectedId]);
+  }, [clip, editedTitle, editedStartTime, editedEndTime, editedSubtitleStyle, editedHorizontalOffset, editedWords, transcript, pendingSelectedId]);
 
   const handleCancelConfirm = useCallback(() => {
     setShowConfirmDialog(false);
@@ -164,6 +169,7 @@ export default function EditorPage() {
         startTime: editedStartTime,
         endTime: editedEndTime,
         subtitleStyle: editedSubtitleStyle,
+        horizontalOffset: editedHorizontalOffset,
         transcriptJson: words ? { words } : undefined,
       });
       setEditedWords({});
@@ -174,7 +180,7 @@ export default function EditorPage() {
     } finally {
       setSaveLoading(false);
     }
-  }, [clip, editedTitle, editedStartTime, editedEndTime, editedSubtitleStyle, editedWords, transcript]);
+  }, [clip, editedTitle, editedStartTime, editedEndTime, editedSubtitleStyle, editedHorizontalOffset, editedWords, transcript]);
 
   const handleRender = useCallback(async () => {
     if (!clip) return;
@@ -393,6 +399,28 @@ export default function EditorPage() {
                     Active Word Highlight
                   </label>
                 </fieldset>
+
+                {clip.project?.selectedLayout === 'talking-head' && (
+                  <div className="editor-field">
+                    <label htmlFor="clip-horizontal-offset">Posisi Horizontal</label>
+                    <input
+                      id="clip-horizontal-offset"
+                      type="range"
+                      min="-0.4"
+                      max="0.4"
+                      step="0.01"
+                      value={editedHorizontalOffset}
+                      onChange={(e) => setEditedHorizontalOffset(Number(e.target.value))}
+                    />
+                    <small>
+                      {editedHorizontalOffset > 0
+                        ? `${(editedHorizontalOffset * 100).toFixed(0)}% kanan`
+                        : editedHorizontalOffset < 0
+                        ? `${(Math.abs(editedHorizontalOffset) * 100).toFixed(0)}% kiri`
+                        : 'Tengah'}
+                    </small>
+                  </div>
+                )}
 
                 {transcriptLoading && (
                   <p className="editor-timing-note">Memuat transkrip…</p>
