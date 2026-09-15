@@ -11,7 +11,7 @@ const STATUS_CONFIG = {
 
 export default function ClipCard({ clip, isSelected, onClick }) {
   const status = STATUS_CONFIG[clip.status] || STATUS_CONFIG.pending;
-  const duration = Number(clip.endTime) - Number(clip.startTime);
+  const duration = Math.round((Number(clip.endTime) - Number(clip.startTime)) * 10) / 10;
   const videoSrc = clip.subtitledVideoPath || clip.clipVideoPath;
 
   return (
