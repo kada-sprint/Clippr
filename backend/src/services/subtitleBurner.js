@@ -121,7 +121,7 @@ function groupWordsIntoLines(words) {
 
 // --- Core functions ---
 
-function buildAss(words, style = 'clean') {
+function buildAss(words, style = 'clean', marginV = MARGIN_V) {
   const styleDef = STYLES[style] || STYLES.clean;
   const lines = groupWordsIntoLines(words);
 
@@ -159,7 +159,7 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Default,${styleDef.fontName},${styleDef.fontSize},${styleDef.primaryColour},${HIGHLIGHT_COLOR},${styleDef.outlineColour},&H80000000,0,0,0,0,100,100,0,0,1,${styleDef.outlineWidth},1,2,${MARGIN_L},${MARGIN_R},${MARGIN_V},1
+Style: Default,${styleDef.fontName},${styleDef.fontSize},${styleDef.primaryColour},${HIGHLIGHT_COLOR},${styleDef.outlineColour},&H80000000,0,0,0,0,100,100,0,0,1,${styleDef.outlineWidth},1,2,${MARGIN_L},${MARGIN_R},${marginV},1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
@@ -217,7 +217,7 @@ async function burnSubtitles(inputPath, words, style = 'clean', outputPath, opti
   await fs.promises.mkdir(outputDir, { recursive: true });
 
   // Write ASS to temp file
-  const assContent = buildAss(words, style);
+  const assContent = buildAss(words, style, options.marginV);
   const timestamp = Date.now();
   const assPath = path.join(outputDir, `_subtitles_${timestamp}.ass`);
 

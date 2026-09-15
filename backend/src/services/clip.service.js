@@ -107,6 +107,75 @@ function createClipService({
 
       try {
         const clip = await clipRepository.claimRender(clipId, userId);
+        const project = clip.project;
+
+        const layout = project.selectedLayout || 'slide-cam';
+        const clipDir = path.resolve(__dirname, '../../uploads', project.id, clip.id);
+        const verticalPath = path.join(clipDir, 'vertical.mp4').replaceAll('\\', '/');
+        const subtitledPath = path.join(clipDir, 'subtitled.mp4').replaceAll('\\', '/');
+        const srtPath = path.join(clipDir, 'subtitles.srt').replaceAll('\\', '/');
+
+        setImmediate(async () => {
+          try {
+            const clipDuration = Number(clip.endTime) - Number(clip.startTime);
+            const timeoutMs = layout === 'slide-only'
+              ? Math.max(120_000, clipDuration * 2_000)
+              : Math.max(60_000, clipDuration * 1_500);
+
+            const reframeResult = await renderClip(
+              project.sourceVideoPath,
+              Number(clip.startTime),
+              Number(clip.endTime),
+              verticalPath,
+              layout,
+              { horizontalOffset: clip.horizontalOffset ?? 0, timeoutMs },
+            );
+
+            if (!reframeResult.success) {
+              console.error(`[Clip Render] Reframe failed for clip ${clipId}:`, reframeResult.error);
+              await clipRepository.updateById(clipId, { status: 'error' });
+              return;
+            }
+
+            const words = clip.transcriptJson?.words;
+            if (words && words.length > 0) {
+              const subtitleResult = await burnSubtitles(
+                verticalPath,
+                words,
+                clip.subtitleStyle || 'clean',
+                subtitledPath,
+                { marginV: layout === 'slide-cam' ? 672 : undefined },
+              );
+
+              if (subtitleResult.success) {
+                const srtResult = generateSrt(clip.transcriptJson, srtPath);
+                await clipRepository.updateById(clipId, {
+                  status: 'rendered',
+                  clipVideoPath: verticalPath,
+                  subtitledVideoPath: subtitledPath,
+                  srtPath: srtResult.success ? srtPath : null,
+                  renderedAt: new Date(),
+                  exportExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                });
+              } else {
+                console.error(`[Clip Render] Subtitle burn failed for clip ${clipId}:`, subtitleResult.error);
+                await clipRepository.updateById(clipId, { status: 'error' });
+              }
+            } else {
+              await clipRepository.updateById(clipId, {
+                status: 'rendered',
+                clipVideoPath: verticalPath,
+                subtitledVideoPath: null,
+                renderedAt: new Date(),
+                exportExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              });
+            }
+          } catch (err) {
+            console.error(`[Clip Render] Unexpected error for clip ${clipId}:`, err.message || err);
+            await clipRepository.updateById(clipId, { status: 'error' });
+          }
+        });
+
         return { id: clip.id, status: 'rendering' };
       } catch (error) {
         if (error instanceof AppError) throw error;
