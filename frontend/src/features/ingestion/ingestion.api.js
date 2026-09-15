@@ -23,8 +23,7 @@ export async function uploadVideoProject({ file, layout, vocabulary, signal }) {
     : (vocabulary || '');
   formData.append('custom_vocabulary', formattedVocab);
 
-  // Batas waktu timeout 5 menit untuk mengakomodasi upload video + FFmpeg + STT Whisper
-  // Sementara batas waktu timeout dinaikkan ke 30 menit (1.800.000 ms) agar video lebih panjang tidak terputus
+  // Batas ini hanya untuk transfer berkas; AI dan render berjalan di worker.
   const timeout = AbortSignal.timeout(1800000);
   const combinedSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
 
@@ -39,7 +38,7 @@ export async function uploadVideoProject({ file, layout, vocabulary, signal }) {
   } catch (error) {
     if (signal?.aborted) throw error;
     if (error.name === 'TimeoutError' || combinedSignal.aborted) {
-      throw new Error('Proses upload dan transkripsi memakan waktu terlalu lama. Silakan coba video yang lebih singkat.');
+      throw new Error('Upload memakan waktu terlalu lama. Periksa koneksi lalu coba kembali.');
     }
     throw new Error('Tidak dapat menghubungi server. Periksa koneksi backend Anda dan coba lagi.');
   }

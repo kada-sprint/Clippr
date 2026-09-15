@@ -15,4 +15,6 @@ module.exports = {
   llmModel: process.env.LLM_MODEL || 'gpt-5.6-luna',
   ffmpegPath: process.env.FFMPEG_PATH || '',
   ffprobePath: process.env.FFPROBE_PATH || '',
+  redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+  queuePrefix: process.env.QUEUE_PREFIX || 'cuplik-local',
 };

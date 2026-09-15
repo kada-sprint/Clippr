@@ -1,6 +1,7 @@
 const { getPrisma } = require('../config/prisma');
 const { withProjectLock } = require('./project-lock');
 const { isProjectBusy } = require('../utils/project-status');
+const { activeStatuses } = require('./processing-job.model');
 
 const projectSelect = {
   id: true,
@@ -16,6 +17,7 @@ const projectSelect = {
   createdAt: true,
   _count: { select: { clips: true } },
   clips: { select: { status: true } },
+  processingJobs: { where: { status: { in: activeStatuses } }, select: { status: true } },
 };
 
 async function listByUserId(userId) {
@@ -88,6 +90,7 @@ async function deleteIfInactive(id, userId, removeMedia) {
     if (!project) return { state: 'missing' };
     if (isProjectBusy(project)) return { state: 'busy' };
     await removeMedia(project);
+    await transaction.processingJob.deleteMany({ where: { projectId: id } });
     await transaction.clip.deleteMany({ where: { projectId: id } });
     await transaction.llmCall.deleteMany({ where: { projectId: id } });
     await transaction.project.delete({ where: { id } });

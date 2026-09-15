@@ -24,7 +24,10 @@ export default function QueuePage() {
     if (!project) return 'Belum dimulai';
     if (currentStage === stage && project.status === 'error') return 'Gagal';
     if (currentStage === stage && project.isBusy) return 'Memproses';
-    if (stage === 'render') return project.isBusy && project.clipCount > 0 ? 'Memproses' : 'Lihat status tiap klip';
+    if (stage === 'render') {
+      if (project.status === 'idle' && !project.isBusy && project.clipCount > 0) return 'Selesai';
+      return project.isBusy && project.clipCount > 0 ? 'Memproses' : 'Belum dimulai';
+    }
     if (project.clipCount > 0 || stageOrder.indexOf(currentStage) > stageOrder.indexOf(stage)) return 'Selesai';
     return 'Belum dimulai';
   }

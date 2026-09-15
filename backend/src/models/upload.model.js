@@ -1,5 +1,6 @@
 const { getPrisma } = require('../config/prisma');
 const { withProjectLock } = require('./project-lock');
+const jobs = require('./processing-job.model');
 
 const uploadProjectSelect = {
   id: true,
@@ -25,6 +26,7 @@ async function findUploadTarget(id, userId) {
 
 async function attachSource({ id, userId, sourceVideoPath, selectedLayout, customVocabulary }) {
   return withProjectLock(id, userId, async (prisma) => {
+    await jobs.assertNoActiveJob(prisma, id);
     const now = new Date();
     const updated = await prisma.project.updateMany({
       where: { id, userId, sourceVideoPath: null, status: 'idle', processingStage: null },
@@ -39,6 +41,7 @@ async function attachSource({ id, userId, sourceVideoPath, selectedLayout, custo
       },
     });
     if (updated.count !== 1) return null;
+    await jobs.create(prisma, id);
     return prisma.project.findFirst({ where: { id, userId }, select: uploadProjectSelect });
   });
 }
@@ -54,7 +57,7 @@ async function markTranscribing(id, userId) {
 async function markCurating(id, userId) {
   return getPrisma().project.update({
     where: { id, userId },
-    data: { status: 'processing', processingStage: 'curate' },
+    data: { status: 'processing', processingStage: 'analyze' },
     select: uploadProjectSelect,
   });
 }
@@ -62,7 +65,7 @@ async function markCurating(id, userId) {
 async function saveTranscript(id, userId, transcriptJson) {
   return getPrisma().project.update({
     where: { id, userId },
-    data: { status: 'TRANSCRIBED', processingStage: 'transcribe', transcriptJson },
+    data: { status: 'processing', processingStage: 'transcribe', transcriptJson },
     select: uploadProjectSelect,
   });
 }

@@ -34,7 +34,7 @@ function createClipController({
     async render(req, res, next) {
       try {
         const clip = await clipService.renderClip(req.userId, req.params.clipId);
-        res.json({ clip });
+        res.status(202).json({ clip });
       } catch (error) {
         next(error);
       }

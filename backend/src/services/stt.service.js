@@ -413,7 +413,10 @@ async function transcribeAudioChunked(audioFilePath, customVocabulary = '', { ch
     return transcribeAudio(audioFilePath, customVocabulary);
   }
 
-  const chunkCount = Math.ceil(duration / chunkDurationSec);
+  let chunkCount = Math.ceil(duration / chunkDurationSec);
+  // Keep sub-second codec padding/tails with the previous chunk instead of
+  // submitting an almost empty ASR request. Preserve the entire source duration.
+  if (chunkCount > 1 && duration - (chunkCount - 1) * chunkDurationSec < 1) chunkCount--;
   console.log(`[STT Chunked] Memecah menjadi ${chunkCount} chunk`);
 
   const chunkResults = [];
@@ -422,7 +425,7 @@ async function transcribeAudioChunked(audioFilePath, customVocabulary = '', { ch
   try {
     for (let i = 0; i < chunkCount; i++) {
       const startSec = i * chunkDurationSec;
-      const thisDuration = Math.min(chunkDurationSec, duration - startSec);
+      const thisDuration = i === chunkCount - 1 ? duration - startSec : chunkDurationSec;
       const offsetSec = startSec; // Timestamp offset for merging
 
       let chunkPath;
@@ -431,7 +434,7 @@ async function transcribeAudioChunked(audioFilePath, customVocabulary = '', { ch
         tempChunkPaths.push(chunkPath);
       } catch (err) {
         console.error(`[STT Chunked] Gagal memotong chunk ${i + 1}/${chunkCount}: ${err.message}`);
-        continue;
+        throw err;
       }
 
       try {
@@ -441,7 +444,7 @@ async function transcribeAudioChunked(audioFilePath, customVocabulary = '', { ch
         console.log(`[STT Chunked] Chunk ${i + 1}/${chunkCount} berhasil: ${result.words?.length || 0} kata`);
       } catch (err) {
         console.error(`[STT Chunked] Chunk ${i + 1}/${chunkCount} gagal setelah retry: ${err.message}`);
-        // Partial failure: skip this chunk, continue with others
+        throw err; // Never checkpoint an incomplete source transcript.
       } finally {
         // Langsung hapus file temporer dari os.tmpdir() segera setelah transkripsi chunk selesai/gagal
         try {

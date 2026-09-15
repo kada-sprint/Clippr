@@ -3,8 +3,6 @@ const fs = require('node:fs');
 const AppError = require('../utils/app-error');
 const clipModel = require('../models/clip.model');
 const projectModel = require('../models/project.model');
-const { renderClip } = require('./reframeCommon');
-const { burnSubtitles } = require('./subtitleBurner');
 const { generateSrt } = require('./srtGenerator');
 const { buildExportBasename } = require('../utils/filenameUtils');
 
@@ -84,8 +82,7 @@ function createClipService({
           }
         }
 
-        const updated = await clipRepository.updateById(clipId, sanitized);
-        await projectRepository.updateLastEditActivity(clip.project.id);
+        const updated = await clipRepository.updateIfInactive(clipId, userId, sanitized);
         return updated;
       } catch (error) {
         if (error instanceof AppError) throw error;
@@ -110,74 +107,6 @@ function createClipService({
 
       try {
         const clip = await clipRepository.claimRender(clipId, userId);
-        const project = clip.project;
-
-        const layout = project.selectedLayout || 'slide-cam';
-        const clipDir = path.resolve(__dirname, '../../uploads', project.id, clip.id);
-        const verticalPath = path.join(clipDir, 'vertical.mp4').replaceAll('\\', '/');
-        const subtitledPath = path.join(clipDir, 'subtitled.mp4').replaceAll('\\', '/');
-        const srtPath = path.join(clipDir, 'subtitles.srt').replaceAll('\\', '/');
-
-        setImmediate(async () => {
-          try {
-            const clipDuration = Number(clip.endTime) - Number(clip.startTime);
-            const timeoutMs = layout === 'slide-only'
-              ? Math.max(120_000, clipDuration * 2_000)
-              : Math.max(60_000, clipDuration * 1_500);
-
-            const reframeResult = await renderClip(
-              project.sourceVideoPath,
-              Number(clip.startTime),
-              Number(clip.endTime),
-              verticalPath,
-              layout,
-              { horizontalOffset: clip.horizontalOffset ?? 0, timeoutMs },
-            );
-
-            if (!reframeResult.success) {
-              console.error(`[Clip Render] Reframe failed for clip ${clipId}:`, reframeResult.error);
-              await clipRepository.updateById(clipId, { status: 'error' });
-              return;
-            }
-
-            const words = clip.transcriptJson?.words;
-            if (words && words.length > 0) {
-              const subtitleResult = await burnSubtitles(
-                verticalPath,
-                words,
-                clip.subtitleStyle || 'clean',
-                subtitledPath,
-              );
-
-              if (subtitleResult.success) {
-                const srtResult = generateSrt(clip.transcriptJson, srtPath);
-                await clipRepository.updateById(clipId, {
-                  status: 'rendered',
-                  clipVideoPath: verticalPath,
-                  subtitledVideoPath: subtitledPath,
-                  srtPath: srtResult.success ? srtPath : null,
-                  renderedAt: new Date(),
-                  exportExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-                });
-              } else {
-                console.error(`[Clip Render] Subtitle burn failed for clip ${clipId}:`, subtitleResult.error);
-                await clipRepository.updateById(clipId, { status: 'error' });
-              }
-            } else {
-              await clipRepository.updateById(clipId, {
-                status: 'rendered',
-                clipVideoPath: verticalPath,
-                subtitledVideoPath: null,
-                renderedAt: new Date(),
-                exportExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-              });
-            }
-          } catch (err) {
-            console.error(`[Clip Render] Unexpected error for clip ${clipId}:`, err.message || err);
-            await clipRepository.updateById(clipId, { status: 'error' });
-          }
-        });
-
         return { id: clip.id, status: 'rendering' };
       } catch (error) {
         if (error instanceof AppError) throw error;
@@ -194,7 +123,7 @@ function createClipService({
         throw new AppError(409, 'CLIP_NOT_RENDERED', 'Klip belum siap untuk diunduh.');
       }
 
-      const filePath = clip.clipVideoPath;
+      const filePath = clip.subtitledVideoPath || clip.clipVideoPath;
       if (!filePath || !fs.existsSync(filePath)) {
         throw new AppError(404, 'FILE_NOT_FOUND', 'Berkas video tidak ditemukan di disk.');
       }

@@ -1,12 +1,13 @@
 openapi: 3.0.3
 info:
   title: Clippr API — Autentikasi
-  version: 0.3.0
+  version: 0.4.0
   description: >-
     Health dan autentikasi Google diimplementasikan. Login menerbitkan cookie sesi
     HttpOnly bertanda tangan dengan masa berlaku absolut satu jam; tidak diperpanjang
     oleh polling. /auth/me membaca profil sesi dari database. CRUD proyek telah
-    diimplementasikan; endpoint pipeline dan klip masih draft.
+    diimplementasikan; admission upload/render menggunakan job persisten dan HTTP 202.
+    Detail pipeline terdapat pada docs/pipeline-contract.md; scheduler retensi belum aktif.
     POST autentikasi memerlukan Origin yang persis cocok dengan FRONTEND_ORIGIN dan JSON.
 servers:
   - url: http://localhost:3000/api
@@ -266,7 +267,84 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+
+  /projects/upload:
+    post:
+      summary: Buat proyek dan terima sumber untuk pipeline worker
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      requestBody: { $ref: '#/components/requestBodies/SourceUpload' }
+      responses:
+        '202': { $ref: '#/components/responses/UploadAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/OriginNotAllowed' }
+  /projects/{id}/source:
+    post:
+      summary: Terima sumber pada proyek kosong milik pengguna
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody: { $ref: '#/components/requestBodies/SourceUpload' }
+      responses:
+        '202': { $ref: '#/components/responses/UploadAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/OriginNotAllowed' }
+        '404': { $ref: '#/components/responses/ProjectNotFound' }
+        '409':
+          description: PROJECT_BUSY atau PROJECT_NOT_UPLOADABLE
+  /clips/{clipId}/render:
+    post:
+      summary: Antrekan render satu klip menggunakan edit tersimpan
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      parameters:
+        - name: clipId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '202':
+          description: Job tersimpan; rendering juga mencakup waktu menunggu antrean
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [clip]
+                properties:
+                  clip:
+                    type: object
+                    required: [id, status]
+                    properties:
+                      id: { type: string, format: uuid }
+                      status: { type: string, enum: [rendering] }
+        '400':
+          description: INVALID_CLIP_ID atau SOURCE_MISSING
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/OriginNotAllowed' }
+        '404':
+          description: CLIP_NOT_FOUND, termasuk klip milik pengguna lain
+        '409':
+          description: PROJECT_BUSY atau ALREADY_RENDERING
+
 components:
+  requestBodies:
+    SourceUpload:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [video_file, selected_layout]
+            properties:
+              video_file: { type: string, format: binary }
+              selected_layout:
+                type: string
+                description: Nilai UI SLIDE_CAM/TALKING_HEAD/SLIDE_ONLY juga dinormalisasi ke nilai kanonik.
+                enum: [slide-cam, talking-head, slide-only, SLIDE_CAM, TALKING_HEAD, SLIDE_ONLY]
+              custom_vocabulary: { type: string, description: Maksimal 20 istilah unik dipisahkan koma }
   securitySchemes:
     sessionCookie:
       type: apiKey
@@ -353,6 +431,22 @@ components:
             code: { type: string }
             message: { type: string }
   responses:
+    UploadAccepted:
+      description: Sumber dan job tersimpan pada database; transkripsi/render belum selesai. Memerlukan Origin aplikasi.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message, project]
+            properties:
+              message: { type: string }
+              project:
+                type: object
+                required: [id, status, processingStage]
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { type: string, enum: [processing] }
+                  processingStage: { type: string, enum: [ingest] }
     BadRequest:
       description: Request atau JSON tidak valid
       content:
@@ -387,12 +481,12 @@ x-future-endpoints:
   description: Draft berikut belum siap sebagai kontrak integrasi final; detail request/response wajib disepakati pemilik.
   authentication: Cookie HttpOnly dan CRUD proyek tersedia; endpoint pipeline/klip berikutnya wajib memakai middleware sesi, requireAuth, dan memeriksa pemilik di backend.
   validation: >-
-    Belum diimplementasikan pada pipeline H-01: maksimal 20 istilah; transkrip per kata
+    Pipeline worker memvalidasi maksimal 20 istilah; transkrip per kata
     dengan word, start_time, end_time, confidence; hasil kurasi 3–5 klip masing-masing
     25–75 detik; layout/subtitle hanya nilai yang didukung. Nilai subtitleStyle dibatasi
     oleh SubtitleStyle; default clean saat pembuatan klip.
   retention: >-
-    Belum diimplementasikan: sumber kedaluwarsa 24 jam setelah upload/upload ulang berhasil;
+    Scheduler cleanup belum diaktifkan. Sumber kedaluwarsa 24 jam setelah upload/upload ulang berhasil;
     MP4/SRT 24 jam setelah render berhasil. Edit hanya mencatat aktivitas; edit, polling,
     dan unduhan tidak memperpanjang retensi. Pertahankan metadata/transkrip, kosongkan path
     setelah pembersihan, tunda media job aktif, dan minta upload ulang jika sumber hilang.
@@ -403,9 +497,7 @@ x-future-endpoints:
     response-fields:
       $ref: '#/components/schemas/ClipSubtitleFields'
   endpoints:
-    - { owner: B, method: POST, path: '/projects/{id}/source', purpose: Upload atau upload ulang sumber asli }
     - { owner: C, method: GET, path: '/projects/{id}/clips', purpose: Hasil kurasi }
     - { owner: C, method: PATCH, path: '/clips/{id}', purpose: Simpan edit klip }
-    - { owner: C, method: POST, path: '/clips/{id}/render', purpose: Render ulang satu klip }
     - { owner: C, method: GET, path: '/clips/{id}/preview', purpose: Preview privat }
     - { owner: C, method: GET, path: '/clips/{id}/exports/{format}', purpose: Unduh MP4 atau SRT privat }

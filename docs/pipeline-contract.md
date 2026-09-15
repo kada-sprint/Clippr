@@ -1,40 +1,82 @@
-# Draft kontrak pipeline H-01
+# Kontrak pipeline Redis / BullMQ
 
-Status: **belum disepakati A/B/C**. Dokumen ini tidak menyatakan queue/worker sudah tersedia. C mengimplementasikan fondasi pada H-02; B memiliki ingest/transcribe, C analyze/render, A schema/status/retensi. Gaya subtitle dan retensi 24 jam telah diselaraskan dengan keputusan terbaru pada PRD/FRD; integrasi pipeline tetap memerlukan review pemilik.
+Implementasi lokal pada branch `feature/docker`. Fondasi C; ingest/transkripsi B;
+status, schema, dan retensi A. Review integrasi pemilik tetap diperlukan sebelum
+penerapan ke lingkungan bersama. Dokumen ini tidak mengklaim pengujian webinar
+lengkap atau scheduler retensi sudah aktif.
 
-Pembagian modul setelah integrasi H-02: A memiliki `project.*` untuk CRUD, ownership,
-dan pembacaan status. B memiliki `upload.*`; endpoint sumber menerima `projectId` melalui
-`POST /projects/{id}/source` dan memperbarui proyek yang sudah dibuat A, bukan membuat
-proyek baru. C memakai proyek yang sama untuk tahap analyze/render dan mengakhiri proses
-dengan `idle`/null atau `error`/tahap gagal.
+## Antrean dan penerimaan pekerjaan
 
-## Payload dan urutan
+- Queue `media`, prefix `QUEUE_PREFIX` (default `cuplik-local`). Jenis job `pipeline`
+  dan `render-clip`; concurrency global dan per worker = 1.
+- Payload `{ jobId, projectId, clipId? }`; `jobId` adalah UUID `ProcessingJob` dan
+  juga BullMQ jobId. Tidak membawa bytes media atau kredensial.
+- API menyimpan sumber/status dan catatan job secara atomik dengan lock proyek.
+  Respons 202 berarti pekerjaan tercatat secara persisten, belum berarti selesai.
+- Dispatcher di proses worker membaca job nonterminal saat startup dan setiap 5
+  detik, lalu memasukkannya ke Redis. Redis terputus tidak membatalkan pekerjaan
+  yang sudah tercatat. Job yang sudah ada tidak dikirim sebagai job baru.
+- Worker memeriksa identitas payload serta relasi klip/proyek dari database.
+  HTTP tetap memeriksa sesi dan ownership sebelum admission.
 
-Usulan satu job pipeline `{ projectId }` membaca sumber, layout, kamus, dan pemilik dari database. Urutan: ingest -> transcribe -> analyze -> render. Job render ulang `{ projectId, clipId }` hanya merender satu klip menggunakan edit tersimpan dan tidak mengulang ASR/kurasi. Payload tidak membawa bytes media, password, atau token pengguna. Worker harus memverifikasi relasi klip/proyek sebelum bekerja.
+## Pipeline dan checkpoint
 
-Status proyek tetap `processing | idle | error`; `processingStage` adalah `ingest | transcribe | analyze | render | null`. Proyek antre memakai `processing` dan tahap berikut yang akan dijalankan. Proyek selesai memakai `idle`/null; kegagalan mempertahankan tahap terakhir dengan `error`. Status klip `pending | rendering | rendered | error`. Polling 5 detik selama pemrosesan aktif; persentase waktu tidak dibuat-buat.
+Urutan `ingest -> transcribe -> analyze -> render`. Validasi berkas dilakukan
+sebelum penerimaan; ekstraksi audio, ASR, LLM, dan render berlangsung di worker.
 
-Worker menyimpan transkrip sumber lengkap per kata sebelum kurasi. Timestamp sumber selalu relatif terhadap video sumber; ekspor subtitle mengonversinya menjadi relatif terhadap awal klip. Skor konsep dan alasan tersimpan bersama segmen. Service tahap tidak bergantung pada request/response Express.
+- Status proyek `processing | idle | error`; `deleting` khusus penghapusan.
+  Tahap `ingest | transcribe | analyze | render | null`. Proyek antre memakai
+  `processing`, selesai memakai `idle`/null, gagal mempertahankan tahap gagal.
+- Transkrip lengkap per kata disimpan bersama checkpoint `transcribe`.
+  Chunk ASR gagal tidak boleh dilewati dan dianggap transkrip lengkap.
+- Kurasi memilih 3-5 segmen valid berdurasi 25-75 detik setelah deduplikasi.
+  Penyimpanan seluruh klip dan checkpoint `analyze` berlangsung satu transaksi.
+  Kurasi tidak mengakhiri status proyek sebelum render selesai.
+- Timestamp transkrip sumber relatif ke sumber. Transkrip klip direbasiskan
+  terhadap awal klip. Gaya subtitle awal `clean`; render ulang membaca gaya/edit
+  tersimpan pada klip. Layout tersimpan `slide-cam | talking-head | slide-only`.
+- Pipeline merender klip berurutan. Saat pemulihan, lewati checkpoint yang sudah
+  tersimpan dan klip berstatus `rendered`. Render ulang hanya membaca satu klip.
 
-## Gaya subtitle dan validasi (belum diimplementasikan pada pipeline)
+## Kegagalan dan percobaan ulang
 
-Worker membaca `Clip.subtitleStyle` dari database untuk render/render ulang: `clean` (default) atau `active_word_highlight`. Field ini dipetakan ke kolom enum `subtitle_style`; perubahan pilihan hanya memengaruhi klip terkait.
+- Catatan job berstatus `pending | running | completed | failed`, menyimpan
+  checkpoint, attempts, attemptToken, errorCode, dan timestamp.
+- Maksimal 3 percobaan job; backoff eksponensial mulai 5 detik untuk kegagalan
+  sementara seperti koneksi/provider unavailable atau timeout. Retry internal
+  service provider tetap berlaku; total panggilan provider dapat melebihi 3.
+- Input tidak valid, sumber hilang, atau hasil kurasi tidak cukup gagal terminal.
+- Setiap claim menghasilkan token percobaan baru. Penulisan hasil harus memegang
+  lock proyek dan token aktif. Percobaan lama tidak dapat memperbarui metadata.
+- File render memakai UUID percobaan pada nama file di direktori klip. Path hanya
+  dipublikasikan setelah MP4 bersubtitle dan SRT berhasil dibuat. Percobaan ulang
+  tidak menimpa file dari percobaan lain.
+- Dispatcher menyelaraskan kegagalan terminal/stalled BullMQ yang belum tercatat
+  pada database. Redis memakai AOF/noeviction dan volume persisten; jangan
+  menghapus/flush antrean untuk pemulihan biasa.
+- Operator dapat membuat job pengganti dari satu job gagal melalui
+  `npm run job:retry -- <jobId>`. Checkpoint dipertahankan; tindakan ini menulis
+  database target dan hanya boleh dijalankan pada lingkungan yang diotorisasi.
 
-Backend wajib memvalidasi maksimal 20 istilah kustom, transkrip per kata yang memuat `word`, `start_time`, `end_time`, `confidence`, 3–5 hasil kurasi masing-masing berdurasi 25–75 detik, serta pilihan layout/subtitle yang didukung. Tiga layout adalah Slide+Cam, Talking-Head, dan Slide Saja; nilai wire layout dikunci bersama B/C sebelum implementasi. Validasi ini belum tersedia hanya dengan menambahkan schema.
+## Penguncian dan retensi
 
-## Retensi dan koordinasi
+Job pending/running memblokir upload, edit, render ganda, dan penghapusan proyek
+terkait. Admission, edit, dan deletion memakai lock baris proyek yang sama.
+Catatan job terminal dihapus bersama penghapusan proyek oleh pemilik.
 
-- Upload sumber/upload ulang berhasil menetapkan aktivitas saat ini serta kedaluwarsa sumber +24 jam. Penyimpanan edit hanya memperbarui aktivitas edit; edit, polling, dan unduhan tidak memperpanjang retensi.
-- Render berhasil menetapkan renderedAt dan kedaluwarsa ekspor +24 jam untuk MP4/SRT klip itu.
-- Pembersihan retensi hanya menghapus media terkelola yang kedaluwarsa lalu mengosongkan path. Metadata dan transkrip tetap ada.
-- Media dengan job antre/aktif tidak boleh dibersihkan. A/C perlu menyepakati mekanisme klaim media yang atomik sebelum scheduler berjalan, agar pemeriksaan job dan penghapusan tidak berlomba.
-- Saat sumber hilang, render ulang ditolak dengan kode usulan `SOURCE_REUPLOAD_REQUIRED`; B mengembalikan sumber asli ke proyek yang sama.
-- Semua preview/unduhan memerlukan autentikasi dan verifikasi pemilik; path filesystem tidak dikirim sebagai URL publik.
+Sumber kedaluwarsa 24 jam sejak upload berhasil. Ekspor kedaluwarsa 24 jam sejak
+render klip berhasil. Edit/polling/retry tidak memperpanjang retensi sumber;
+render sukses hanya memperbarui retensi ekspor klip tersebut.
 
-Scheduler dan logika retensi di atas belum diimplementasikan pada backend H-01; ini adalah kontrak untuk tahap berikutnya.
+Scheduler retensi belum diaktifkan. Sebelum dihubungkan, repository cleanup wajib
+mengambil lock proyek yang sama dan menolak job pending/running sepanjang unlink
+serta pengosongan path. Metadata/transkrip harus tetap tersimpan. File sumber
+hilang menghasilkan `SOURCE_MISSING`, tidak memulai ulang ASR secara otomatis.
 
-## Hal yang wajib dikunci bersama sebelum H-02/H-03
+## Operasional dan batas bukti
 
-Nama queue, identitas job/idempotensi, retry dan timeout, perlindungan edit selama render, klaim media, serta bentuk transkrip/koreksi subtitle harus disepakati B/C dengan A. Usulan payload di atas bukan izin menjalankan pekerjaan paralel sebelum kontrak ini direview. Pemilihan provider/model ASR/LLM milik B/C.
-
-Schema awal dan tambahan gaya subtitle melalui migrasi terpisah sudah diterapkan pada Aiven bersama setelah persetujuan tim; schema dan checksum migrasi telah diverifikasi. Kontrak pipeline tetap draft dan queue/worker belum diimplementasikan. Nama proyek belum ditambahkan pada H-01; usulan penambahannya untuk H-02 harus direview bersama pemilik sebelum migrasi lanjutan.
+Lihat [panduan queue](queue-operations.md) untuk startup dan tes terisolasi.
+Tidak ada migrasi otomatis saat API/worker startup. Worker membutuhkan migrasi
+`processing_jobs` terlebih dahulu. Deployment harus dilakukan setelah pekerjaan
+lama di proses API selesai; job lama tanpa catatan ProcessingJob tidak otomatis
+diadopsi. Jangan menyalakan API lama dan worker baru untuk pekerjaan yang sama.

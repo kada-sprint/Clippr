@@ -12,7 +12,7 @@ function createUploadController({ uploadService = createUploadService() } = {}) 
           customVocabulary: req.body?.custom_vocabulary,
         });
         res.status(202).json({
-          message: 'Sumber diterima dan diteruskan ke tahap analisis.',
+          message: 'Sumber diterima dan masuk antrean pemrosesan.',
           project,
         });
       } catch (error) {
@@ -27,8 +27,8 @@ function createUploadController({ uploadService = createUploadService() } = {}) 
           selectedLayout: req.body?.selected_layout,
           customVocabulary: req.body?.custom_vocabulary,
         });
-        res.status(201).json({
-          message: 'Video berhasil diunggah dan ditranskripsi.',
+        res.status(202).json({
+          message: 'Sumber diterima dan masuk antrean pemrosesan.',
           project,
         });
       } catch (error) {

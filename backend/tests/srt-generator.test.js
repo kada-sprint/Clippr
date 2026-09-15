@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { generateSrt, groupWordsIntoCues, formatSrtTime } = require('../src/services/srtGenerator');
 
-const OUTPUT_DIR = path.join(__dirname, 'tmp');
+const OUTPUT_DIR = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'cuplik-srt-'));
 
 describe('formatSrtTime', () => {
   it('formats zero correctly', () => {

@@ -6,7 +6,7 @@ const { renderClip } = require('../src/services/reframeCommon');
 const { getVideoMetadata } = require('../src/utils/ffprobeUtils');
 
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
-const OUTPUT_DIR = path.join(__dirname, 'tmp');
+const OUTPUT_DIR = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'cuplik-reframe-'));
 
 // Sample test videos — 5–10 second clips for smoke testing.
 // Replace these paths with real fixture files before running.
