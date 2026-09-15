@@ -50,6 +50,12 @@ export default function EditorPage() {
 
   const clip = clips.find((item) => item.id === selectedId);
 
+  useEffect(() => {
+    if (clips.length > 0 && !selectedId) {
+      setSelectedId(clips[0].id);
+    }
+  }, [clips, selectedId]);
+
   const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
   const videoSrc = clip?.subtitledVideoPath
     ? `${API_BASE}/api/media/${validProjectId}/${clip.id}/subtitled.mp4`
