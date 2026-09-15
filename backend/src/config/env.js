@@ -3,6 +3,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../.env'), quiet: t
 
 module.exports = {
   port: Number(process.env.PORT || 3000),
+  host: process.env.HOST || '127.0.0.1',
   frontendOrigin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   sessionSecret: process.env.SESSION_SECRET || '',

@@ -33,6 +33,48 @@ Untuk upload dan transkripsi, siapkan juga FFmpeg/ffprobe pada `PATH`, lalu tamb
 
 ## Menjalankan aplikasi
 
+### Docker (disarankan untuk tim)
+
+Aktifkan Docker Desktop dengan Linux containers. Siapkan `.env` backend/frontend
+dan `backend/certs/ca.pem` sesuai bagian Persiapan. Database tujuan harus sudah
+memiliki migrasi `ProcessingJob`; Compose tidak menjalankan migrasi otomatis.
+Gunakan database/schema pengembangan terisolasi per anggota. Prefix Redis berbeda
+saja tidak mengisolasi job pada database bersama.
+
+Dari root repo:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=50 worker
+docker compose exec api npm run db:check
+```
+
+API tersedia di `http://localhost:3000`; log worker harus menampilkan
+`Cuplik worker siap.` Hentikan API/worker Node.js lokal sebelum menjalankan versi
+Docker agar port dan pengambilan job tidak bertabrakan. Redis, API, dan worker
+dijalankan oleh Compose; tidak perlu `npm ci` backend di host.
+
+Frontend tetap dijalankan pada terminal lokal:
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+Buka `http://localhost:5173`. Setelah kode backend berubah, jalankan kembali
+`docker compose up -d --build`; setelah `.env` berubah, jalankan
+`docker compose up -d --force-recreate api worker` dari root repo.
+Hentikan layanan dengan `docker compose stop`. Volume media/Redis tetap disimpan.
+Detail konfigurasi, media lama, dan alternatif tanpa container backend tersedia
+di [panduan antrean](docs/queue-operations.md).
+
+### Alternatif: backend Node.js lokal
+
+Jalankan Redis dengan `docker compose up -d redis`, lalu jalankan API berikut
+dan `npm run worker` pada terminal backend terpisah.
+
 **Terminal 1 — backend**, mulai dari root repository:
 
 ```powershell

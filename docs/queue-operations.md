@@ -2,9 +2,48 @@
 
 ## Lingkungan pengembangan
 
-Redis berjalan di Docker; API dan worker Node.js memakai checkout backend,
-database, dan direktori media yang sama. Frontend tetap Vite. Tidak perlu load
-balancer atau container API untuk integrasi lokal ini.
+### Redis, API, dan worker melalui Docker Compose
+
+Siapkan Docker Desktop (Linux containers), `backend/.env`, dan CA Aiven di
+`backend/certs/ca.pem`. Gunakan `sslcert=../certs/ca.pem` pada DATABASE_URL,
+bukan path absolut Windows; pertahankan `sslmode=require&sslaccept=strict`.
+Gunakan database/schema terisolasi per anggota yang sudah memiliki migrasi
+`20260915000000_processing_jobs`. Tidak ada migrasi otomatis saat build/start.
+
+```powershell
+docker compose up -d --build
+docker compose ps
+docker compose exec redis redis-cli ping
+docker compose exec api npm run db:check
+docker compose logs --tail=50 worker
+```
+
+Worker harus menampilkan `Cuplik worker siap.` API di `http://localhost:3000`.
+Frontend tetap `npm ci` lalu `npm run dev` di folder frontend, dan dibuka melalui
+`http://localhost:5173`. Hentikan API/worker lokal sebelum berpindah ke Docker.
+
+API dan worker memakai image yang sama, proses terpisah, dan volume `media-data`
+pada `/app/backend/uploads`. Sertifikat di-mount read-only; `.env`, sertifikat,
+node_modules host, dan media lokal tidak masuk image. Compose membaca `.env`
+backend untuk kredensial dan QUEUE_PREFIX, lalu mengganti REDIS_URL menjadi
+`redis://redis:6379`, HOST menjadi `0.0.0.0`, PORT menjadi 3000, dan path FFmpeg/
+ffprobe menjadi binary Linux. NODE_ENV=development mendukung login HTTP lokal;
+konfigurasi ini bukan deployment HTTPS produksi.
+
+Media lama yang path databasenya menunjuk Windows tidak otomatis tersedia dalam
+container. Gunakan proyek/upload baru untuk uji Docker; pemindahan media lama
+memerlukan penyalinan berkas dan penyesuaian path terkoordinasi, bukan migrasi
+otomatis. Jangan menjalankan worker host/container terhadap database yang sama
+secara bersamaan. Prefix berbeda saja tidak memisahkan job di PostgreSQL.
+
+Setelah kode berubah: `docker compose up -d --build`. Setelah `.env` berubah:
+`docker compose up -d --force-recreate api worker`. Hentikan layanan menggunakan
+`docker compose stop`; media dan Redis tetap tersimpan. Worker diberi waktu
+hingga 30 menit untuk menyelesaikan pekerjaan aktif saat dihentikan.
+Healthcheck API hanya memeriksa HTTP; gunakan db:check dan log worker untuk
+memeriksa kesiapan database/worker. Jangan menjalankan `down -v` untuk restart.
+
+### Alternatif: Redis Docker, API dan worker Node.js lokal
 
 1. Pastikan Docker Desktop memakai Linux containers.
 2. Dari root repo: `docker compose up -d --wait redis`.
