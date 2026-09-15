@@ -30,6 +30,9 @@
 .editor-preview { background: #0b1019; border: 1px solid #252c39; padding: 22px; border-radius: 24px; }
 .editor-preview-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 11px; color: #8ed4ff; padding-bottom: 16px; border-bottom: 1px solid #262d39; }
 .editor-preview-heading small { color: #a6b3c4; }
+.editor-heading-left { display: flex; align-items: center; gap: 8px; }
+.editor-preview-heading .editor-export-btn { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border: 1px solid #3a4250; border-radius: 6px; color: #b4c0cf; text-decoration: none; font-size: 10px; font-weight: 500; transition: border-color 0.15s, color 0.15s; }
+.editor-preview-heading .editor-export-btn:hover { border-color: #2584ff; color: #91d2ff; }
 .editor-canvas { position: relative; overflow: hidden; aspect-ratio: 9 / 16; width: min(100%, 310px); margin: 18px auto 0; border: 1px solid #41444f; border-radius: 8px; background: #212735; display: flex; flex-direction: column; }
 .editor-canvas-label { padding: 16px 14px; font-size: 9px; letter-spacing: 1px; color: #9ad8ff; }
 .editor-slide { padding: 28px 22px; flex: 1; background: radial-gradient(ellipse at top right, #3c4354, transparent); }

@@ -10,6 +10,14 @@ import './editor.css';
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+const LAYOUT_LABELS = {
+  'slide-cam': 'Slide + Pembicara',
+  'talking-head': 'Wajah Penuh',
+  'slide-only': 'Slide Saja',
+};
+
 const NUDGE_STEP = 0.5;
 const MIN_DURATION = 25;
 const MAX_DURATION = 75;
@@ -304,7 +312,29 @@ export default function EditorPage() {
             <>
               <section className="editor-preview" aria-label="Pratinjau layout klip">
                 <div className="editor-preview-heading">
-                  <span>9:16 · Slide + Pembicara</span>
+                  <span className="editor-heading-left">
+                    <span>9:16 · {LAYOUT_LABELS[clip.project?.selectedLayout] || 'Slide + Pembicara'}</span>
+                    {clip.status === 'rendered' && (
+                      <>
+                        <a
+                          href={`${API_BASE}/api/clips/${clip.id}/export/mp4`}
+                          download
+                          className="editor-export-btn"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Icon name="download" size={12} /> MP4
+                        </a>
+                        <a
+                          href={`${API_BASE}/api/clips/${clip.id}/export/srt`}
+                          download
+                          className="editor-export-btn"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Icon name="download" size={12} /> SRT
+                        </a>
+                      </>
+                    )}
+                  </span>
                   <small>{clip.title}</small>
                 </div>
                 <div className="editor-canvas">

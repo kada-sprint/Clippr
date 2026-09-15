@@ -194,7 +194,7 @@ function createClipService({
         throw new AppError(409, 'CLIP_NOT_RENDERED', 'Klip belum siap untuk diunduh.');
       }
 
-      const filePath = clip.clipVideoPath;
+      const filePath = clip.subtitledVideoPath || clip.clipVideoPath;
       if (!filePath || !fs.existsSync(filePath)) {
         throw new AppError(404, 'FILE_NOT_FOUND', 'Berkas video tidak ditemukan di disk.');
       }

@@ -1,8 +1,6 @@
 import Icon from '../../../components/Icon.jsx';
 import { formatTime } from '../editor.example.js';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
-
 const STATUS_CONFIG = {
   pending: { label: 'Menunggu', className: 'clip-status--pending' },
   needs_review: { label: 'Perlu Review', className: 'clip-status--needs-review' },
@@ -15,7 +13,6 @@ export default function ClipCard({ clip, isSelected, onClick }) {
   const status = STATUS_CONFIG[clip.status] || STATUS_CONFIG.pending;
   const duration = Number(clip.endTime) - Number(clip.startTime);
   const videoSrc = clip.subtitledVideoPath || clip.clipVideoPath;
-  const isRendered = clip.status === 'rendered';
 
   return (
     <button
@@ -42,31 +39,9 @@ export default function ClipCard({ clip, isSelected, onClick }) {
         <span>
           {formatTime(Number(clip.startTime))} → {formatTime(Number(clip.endTime))}
         </span>
-        <span className="editor-clip-actions">
-          {isRendered && (
-            <>
-              <a
-                href={`${API_BASE}/api/clips/${clip.id}/export/mp4`}
-                download
-                className="editor-export-btn"
-                onClick={(e) => e.stopPropagation()}
-              >
-                MP4
-              </a>
-              <a
-                href={`${API_BASE}/api/clips/${clip.id}/export/srt`}
-                download
-                className="editor-export-btn"
-                onClick={(e) => e.stopPropagation()}
-              >
-                SRT
-              </a>
-            </>
-          )}
-          <b>
-            {isSelected ? 'Aktif di kanvas' : 'Pilih klip'}
-          </b>
-        </span>
+        <b>
+          {isSelected ? 'Aktif di kanvas' : 'Pilih klip'}
+        </b>
       </span>
     </button>
   );
