@@ -101,7 +101,7 @@ function extractAudio(inputVideoPath) {
     const outputPath = path.join(AUDIO_DIR, outputFilename);
 
     function runExtraction(withPreset = true) {
-      let command = ffmpeg(inputVideoPath)
+      let command = ffmpeg(inputVideoPath, { timeout: 600 })
         .noVideo()                     // Hanya ambil track audio
         .audioChannels(1)              // Mono (1 channel)
         .audioFrequency(16000)         // Sample rate 16kHz standar Whisper
@@ -224,8 +224,27 @@ function splitAudioChunk(audioPath, startSec, durationSec) {
 }
 
 module.exports = {
+  validateVideo,
   extractAudio,
   getAudioDuration,
   splitAudioChunk,
   AUDIO_DIR,
 };
+
+function validateVideo(filePath) {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(filePath, ['-v', 'error'], (error, metadata) => {
+      if (error) return reject(new AppError(400, 'INVALID_MEDIA', 'Berkas video tidak dapat dibaca.'));
+      const duration = Number(metadata.format?.duration);
+      const video = metadata.streams?.find((stream) => stream.codec_type === 'video');
+      const audio = metadata.streams?.find((stream) => stream.codec_type === 'audio');
+      const formats = (metadata.format?.format_name || '').split(',');
+      if (!video || !audio || !formats.some((format) => ['mov', 'mp4'].includes(format)) ||
+          !Number.isFinite(duration) || duration <= 0 || duration > 2700 ||
+          Number(metadata.format?.size) > 1024 * 1024 * 1024) {
+        return reject(new AppError(400, 'INVALID_MEDIA', 'Gunakan MP4/MOV dengan video dan audio, maksimal 45 menit dan 1 GB.'));
+      }
+      resolve(metadata);
+    });
+  });
+}

@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const { buildAss, generateSrt, burnSubtitles, STYLES, SAFE_MARGINS, VIDEO_WIDTH, VIDEO_HEIGHT } = require('../src/services/subtitleBurner');
 
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
-const OUTPUT_DIR = path.join(__dirname, 'tmp');
+const OUTPUT_DIR = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'cuplik-subtitle-'));
 const SAMPLE_VIDEO = path.join(FIXTURES_DIR, 'sample_slide_cam.mp4');
 
 // Clip-relative word fixtures — timestamps rebased to 0

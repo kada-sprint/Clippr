@@ -1,4 +1,5 @@
 const ffmpeg = require('fluent-ffmpeg');
+require('../utils/ffmpeg');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -237,14 +238,15 @@ async function burnSubtitles(inputPath, words, style = 'clean', outputPath, opti
 
     const proc = ffmpeg(inputPath);
 
-    proc.videoFilter(`ass=${assPath}`);
+    const filterPath = assPath.replaceAll('\\', '/').replaceAll(':', '\\:').replaceAll("'", "'\\''");
+    proc.videoFilter(`ass=filename='${filterPath}'`);
     proc.audioCodec('copy');
     proc.videoCodec('libx264');
     proc.output(outputPath);
 
-    proc.on('end', () => {
+    proc.on('end', async () => {
       clearTimeout(timer);
-      cleanup();
+      await cleanup();
       resolve({
         success: true,
         outputPath,
@@ -253,9 +255,9 @@ async function burnSubtitles(inputPath, words, style = 'clean', outputPath, opti
       });
     });
 
-    proc.on('error', (err) => {
+    proc.on('error', async (err) => {
       clearTimeout(timer);
-      cleanup();
+      await cleanup();
       resolve({
         success: false,
         outputPath: null,
@@ -269,12 +271,12 @@ async function burnSubtitles(inputPath, words, style = 'clean', outputPath, opti
     });
 
     function cleanup() {
-      fs.promises.unlink(assPath).catch(() => {});
+      return fs.promises.unlink(assPath).catch(() => {});
     }
 
-    timer = setTimeout(() => {
+    timer = setTimeout(async () => {
       proc.kill('SIGKILL');
-      cleanup();
+      await cleanup();
       resolve({
         success: false,
         outputPath: null,

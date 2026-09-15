@@ -31,12 +31,12 @@ function validateAndFormatVocabulary(rawVocabulary) {
 }
 
 const LAYOUT_MAP = Object.freeze({
-  slide_speaker: 'SLIDE_CAM',
-  speaker: 'TALKING_HEAD',
-  slides: 'SLIDE_ONLY',
-  SLIDE_CAM: 'SLIDE_CAM',
-  TALKING_HEAD: 'TALKING_HEAD',
-  SLIDE_ONLY: 'SLIDE_ONLY',
+  slide_speaker: 'slide-cam',
+  speaker: 'talking-head',
+  slides: 'slide-only',
+  SLIDE_CAM: 'slide-cam',
+  TALKING_HEAD: 'talking-head',
+  SLIDE_ONLY: 'slide-only',
 });
 
 function validateLayout(layout) {

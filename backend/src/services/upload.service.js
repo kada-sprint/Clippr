@@ -1,10 +1,8 @@
 const AppError = require('../utils/app-error');
 const uploadModel = require('../models/upload.model');
-const { extractAudio: defaultExtractAudio } = require('../utils/ffmpeg');
-const { transcribeAudioChunked: defaultTranscribeAudio } = require('./stt.service');
+const { validateVideo: defaultValidateVideo } = require('../utils/ffmpeg');
 const { removeUploadedFile: defaultRemoveFile } = require('../middlewares/upload.middleware');
 const { validateAndFormatVocabulary, validateLayout, validateProjectId } = require('./project.service');
-const { curateClips } = require('./curation.service');
 
 function toPublicProject(project) {
   return {
@@ -24,17 +22,14 @@ function toPublicProject(project) {
 
 function createUploadService({
   repository = uploadModel,
-  extractAudio = defaultExtractAudio,
-  transcribeAudio = defaultTranscribeAudio,
+  validateVideo = defaultValidateVideo,
   removeFile = defaultRemoveFile,
 } = {}) {
   return {
     async uploadSource({ projectId, userId, file, selectedLayout, customVocabulary }) {
-      validateProjectId(projectId);
-      let audioPath = null;
       let sourceAttached = false;
-      let processingStage = 'ingest';
       try {
+        validateProjectId(projectId);
         if (!file?.path) {
           throw new AppError(400, 'FILE_REQUIRED', 'File video wajib diunggah.');
         }
@@ -43,6 +38,7 @@ function createUploadService({
 
         const layout = validateLayout(selectedLayout);
         const vocabulary = validateAndFormatVocabulary(customVocabulary);
+        await validateVideo(file.path);
         const sourceVideoPath = file.path.replaceAll('\\', '/');
         const project = await repository.attachSource({
           id: projectId,
@@ -56,45 +52,10 @@ function createUploadService({
         }
         sourceAttached = true;
 
-        audioPath = await extractAudio(file.path);
-        console.log(`[Upload Service] Audio berhasil diekstrak: ${audioPath}`);
-
-        processingStage = 'transcribe';
-        await repository.markTranscribing(projectId, userId);
-
-        const transcriptJson = await transcribeAudio(audioPath, vocabulary);
-        console.log(`[Upload Service] Transkrip berhasil dibuat: ${transcriptJson.words?.length || 0} kata. Menyimpan ke database...`);
-
-        const transcribed = await repository.saveTranscript(projectId, userId, transcriptJson);
-        console.log(`[Upload Service] Proyek ${projectId} berhasil diupdate ke status TRANSCRIBED.`);
-
-        processingStage = 'curate';
-        await repository.markCurating(projectId, userId);
-
-        setImmediate(async () => {
-          try {
-            await curateClips(projectId, transcriptJson);
-            console.log(`[Upload Service] Kurasi selesai untuk ${projectId}.`);
-          } catch (err) {
-            console.error(`[Upload Service] Kurasi gagal untuk ${projectId}:`, err.message);
-            await repository.markFailed(projectId, userId, 'curate');
-          }
-        });
-
-        return toPublicProject(transcribed);
+        return toPublicProject(project);
       } catch (error) {
-        if (sourceAttached) {
-          try {
-            await repository.markFailed(projectId, userId, processingStage);
-          } catch {
-            // Preserve the original processing failure.
-          }
-        } else if (file?.path) {
-          await removeFile(file.path);
-        }
+        if (!sourceAttached && file?.path) await removeFile(file.path);
         throw error;
-      } finally {
-        if (audioPath) await removeFile(audioPath);
       }
     },
 

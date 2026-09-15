@@ -4,6 +4,7 @@ const AppError = require('../utils/app-error');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const temporarySubtitle = /^_subtitles_\d+\.ass$/;
+const attemptOutput = /^(vertical|subtitled|subtitles)-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(mp4|srt)$/i;
 
 function createProjectMediaCleanup({ mediaRoot = path.resolve(__dirname, '../..'), files = fs } = {}) {
   const root = path.resolve(mediaRoot);
@@ -56,7 +57,7 @@ function createProjectMediaCleanup({ mediaRoot = path.resolve(__dirname, '../..'
           targets.add(path.join(cRoot, 'subtitled.mp4'));
           if (await inspect(cRoot, true)) {
             for (const name of await files.readdir(cRoot)) {
-              if (temporarySubtitle.test(name)) targets.add(path.join(cRoot, name));
+              if (temporarySubtitle.test(name) || attemptOutput.test(name)) targets.add(path.join(cRoot, name));
             }
           }
         }

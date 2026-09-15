@@ -1,4 +1,5 @@
 const ffmpeg = require('fluent-ffmpeg');
+require('../utils/ffmpeg');
 const fs = require('node:fs');
 const path = require('node:path');
 

@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const { getPrisma } = require('../config/prisma');
 const env = require('../config/env');
+const AppError = require('../utils/app-error');
 const { createChunker } = require('./chunker');
 const { callChatCompletion } = require('./llm-client');
 const clipOutputSchema = require('../utils/clip-output-schema');
@@ -8,7 +9,7 @@ const fallbackOutputSchema = require('../utils/fallback-output-schema');
 const { parseFallback, ParseFailure } = require('./fallback_parser');
 
 const SCORE_MAX = 98;
-const MIN_CLIPS = 1;
+const MIN_CLIPS = 3;
 const MAX_CLIPS = 5;
 const OVERLAP_THRESHOLD = 0.5;
 
@@ -194,8 +195,9 @@ async function insertClips(prisma, projectId, segments, transcriptWords, isFallb
   return clips;
 }
 
-async function curateClips(projectId, transcript, { callLlm = defaultCallLlm } = {}) {
-  const prisma = getPrisma();
+async function curateClips(projectId, transcript, { callLlm = defaultCallLlm,
+  recordLlmCall = (data) => getPrisma().llmCall.create({ data }),
+} = {}) {
 
   const chunks = chunker(transcript);
   if (chunks.length === 0) {
@@ -224,18 +226,16 @@ async function curateClips(projectId, transcript, { callLlm = defaultCallLlm } =
       }
     } catch (err) {
       const latencyMs = Date.now() - callStart;
-      await prisma.llmCall.create({
-        data: {
-          projectId,
-          chunkIndex: i,
-          model: env.llmModel || 'unknown',
-          inputTokens: 0,
-          outputTokens: 0,
-          latencyMs,
-          success: false,
-          errorCode: err.code || 'UNKNOWN',
-          retryCount: 0,
-        },
+      await recordLlmCall({
+        projectId,
+        chunkIndex: i,
+        model: env.llmModel || 'unknown',
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs,
+        success: false,
+        errorCode: err.code || 'UNKNOWN',
+        retryCount: 0,
       });
       throw err;
     }
@@ -243,50 +243,36 @@ async function curateClips(projectId, transcript, { callLlm = defaultCallLlm } =
     const latencyMs = Date.now() - callStart;
     const result = parseLlmResponse(rawResponse);
 
-    await prisma.llmCall.create({
-      data: {
-        projectId,
-        chunkIndex: i,
-        model: env.llmModel || 'unknown',
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        latencyMs,
-        success: result.success,
-        errorCode: result.success ? null : 'PARSE_FAILED',
-        retryCount,
-      },
+    await recordLlmCall({
+      projectId,
+      chunkIndex: i,
+      model: env.llmModel || 'unknown',
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      latencyMs,
+      success: result.success,
+      errorCode: result.success ? null : 'PARSE_FAILED',
+      retryCount,
     });
 
-    if (result.success && result.data.segments.length > 0) {
-      const clips = await insertClips(
-        prisma,
-        projectId,
-        result.data.segments,
-        transcript.words,
-        result.isFallback || false
-      );
-      allClips.push(...clips);
-    }
+    if (!result.success) throw new AppError(422, 'CURATION_INVALID', 'Keluaran kurasi tidak valid.');
+    allClips.push(...result.data.segments.map((segment) => ({
+      ...segment, startTime: segment.start_time_seconds, endTime: segment.end_time_seconds,
+    })));
   }
 
-  const dedupedClips = dedupClips(allClips);
-
+  const dedupedClips = dedupClips(allClips.filter((segment) =>
+    Number.isFinite(segment.concept_score) && segment.concept_score >= 0 && segment.concept_score <= SCORE_MAX &&
+    Number.isFinite(segment.startTime) && segment.startTime >= 0 &&
+    Number.isFinite(segment.endTime) &&
+    segment.endTime <= (transcript.duration || transcript.words.at(-1)?.end_time) &&
+    segment.endTime - segment.startTime >= 25 && segment.endTime - segment.startTime <= 75
+  )).slice(0, MAX_CLIPS);
   if (dedupedClips.length < MIN_CLIPS) {
-    await prisma.project.update({
-      where: { id: projectId },
-      data: { status: 'error', processingStage: 'analyze' },
-    });
-    throw new Error(
-      `Kurasi gagal: hanya ${dedupedClips.length} klip ditemukan (minimal ${MIN_CLIPS})`
-    );
+    throw new AppError(422, 'CURATION_INSUFFICIENT', `Kurasi menghasilkan kurang dari ${MIN_CLIPS} klip valid.`);
   }
-
-  await prisma.project.update({
-    where: { id: projectId },
-    data: { status: 'idle', processingStage: null },
-  });
 
   return dedupedClips;
 }
 
-module.exports = { curateClips, dedupClips, normalizeScore, computeOverlap, buildPrompt, parseLlmResponse };
+module.exports = { insertClips, curateClips, dedupClips, normalizeScore, computeOverlap, buildPrompt, parseLlmResponse };

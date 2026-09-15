@@ -405,7 +405,7 @@ test('project CRUD preflight allows PATCH and DELETE only for the configured fro
   }
 });
 
-test('source upload uses an owned project endpoint and the legacy create-on-upload route is removed', async (t) => {
+test('both upload endpoints require authentication before accepting media', async (t) => {
   const baseUrl = await serve(t, {
     list: async () => [],
     create: async () => assert.fail('must not create'),
@@ -422,7 +422,7 @@ test('source upload uses an owned project endpoint and the legacy create-on-uplo
     method: 'POST',
     headers: { Origin: origin },
   });
-  assert.equal(legacy.status, 404);
+  assert.equal(legacy.status, 401);
 });
 
 test('a malformed project id is rejected before database access', async (t) => {

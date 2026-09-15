@@ -59,6 +59,11 @@ function repositoryDatabase(row) {
       let locked = false;
       const tx = {
         project, clip,
+        processingJob: {
+          findFirst: async () => row?.processingJobs?.find((job) => ['pending', 'running'].includes(job.status)) || null,
+          create: async ({ data }) => { row.processingJobs = [...(row.processingJobs || []), { ...data, status: 'pending' }]; },
+          deleteMany: async () => { row.processingJobs = []; },
+        },
         llmCall: { deleteMany: async ({ where }) => { assert.equal(where.projectId, id); events.push('llmCalls'); } },
         async $queryRaw(strings, projectId, owner) {
           assert.match(strings.join('?'), /FOR UPDATE/);

@@ -10,6 +10,12 @@ const path = require('node:path');
  *   3. System PATH fallback
  */
 function resolveFfprobePath() {
+  if (process.env.FFPROBE_PATH) return process.env.FFPROBE_PATH;
+  try {
+    return require('@ffprobe-installer/ffprobe').path;
+  } catch {
+    // Continue with the existing fallback chain.
+  }
   // 1. Derive from FFMPEG_PATH env var
   if (process.env.FFMPEG_PATH) {
     return path.join(path.dirname(process.env.FFMPEG_PATH), 'ffprobe');
