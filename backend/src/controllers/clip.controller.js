@@ -39,6 +39,28 @@ function createClipController({
         next(error);
       }
     },
+
+    async exportMp4(req, res, next) {
+      try {
+        const { filePath, basename } = await clipService.exportMp4(req.userId, req.params.clipId);
+        res.setHeader('Content-Type', 'video/mp4');
+        res.setHeader('Content-Disposition', `attachment; filename="${basename}.mp4"`);
+        res.sendFile(filePath);
+      } catch (error) {
+        next(error);
+      }
+    },
+
+    async exportSrt(req, res, next) {
+      try {
+        const { filePath, basename } = await clipService.exportSrt(req.userId, req.params.clipId);
+        res.setHeader('Content-Type', 'application/x-subrip');
+        res.setHeader('Content-Disposition', `attachment; filename="${basename}.srt"`);
+        res.sendFile(filePath);
+      } catch (error) {
+        next(error);
+      }
+    },
   };
 }
 

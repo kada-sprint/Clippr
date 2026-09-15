@@ -9,6 +9,7 @@ const clipSelect = {
   endTime: true,
   clipVideoPath: true,
   subtitledVideoPath: true,
+  srtPath: true,
   status: true,
   subtitleStyle: true,
   horizontalOffset: true,

@@ -1,9 +1,12 @@
 const path = require('node:path');
+const fs = require('node:fs');
 const AppError = require('../utils/app-error');
 const clipModel = require('../models/clip.model');
 const projectModel = require('../models/project.model');
 const { renderClip } = require('./reframeCommon');
 const { burnSubtitles } = require('./subtitleBurner');
+const { generateSrt } = require('./srtGenerator');
+const { buildExportBasename } = require('../utils/filenameUtils');
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -113,6 +116,7 @@ function createClipService({
         const clipDir = path.resolve(__dirname, '../../uploads', project.id, clip.id);
         const verticalPath = path.join(clipDir, 'vertical.mp4').replaceAll('\\', '/');
         const subtitledPath = path.join(clipDir, 'subtitled.mp4').replaceAll('\\', '/');
+        const srtPath = path.join(clipDir, 'subtitles.srt').replaceAll('\\', '/');
 
         setImmediate(async () => {
           try {
@@ -146,10 +150,12 @@ function createClipService({
               );
 
               if (subtitleResult.success) {
+                const srtResult = generateSrt(clip.transcriptJson, srtPath);
                 await clipRepository.updateById(clipId, {
                   status: 'rendered',
                   clipVideoPath: verticalPath,
                   subtitledVideoPath: subtitledPath,
+                  srtPath: srtResult.success ? srtPath : null,
                   renderedAt: new Date(),
                   exportExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
                 });
@@ -177,6 +183,61 @@ function createClipService({
         if (error instanceof AppError) throw error;
         throw new AppError(503, 'DATABASE_UNAVAILABLE', 'Gagal memulai render.');
       }
+    },
+
+    async exportMp4(userId, clipId) {
+      validateClipId(clipId);
+      const clip = await clipRepository.findByIdWithOwnership(clipId, userId);
+      if (!clip) throw new AppError(404, 'CLIP_NOT_FOUND', 'Klip tidak ditemukan.');
+
+      if (clip.status !== 'rendered') {
+        throw new AppError(409, 'CLIP_NOT_RENDERED', 'Klip belum siap untuk diunduh.');
+      }
+
+      const filePath = clip.clipVideoPath;
+      if (!filePath || !fs.existsSync(filePath)) {
+        throw new AppError(404, 'FILE_NOT_FOUND', 'Berkas video tidak ditemukan di disk.');
+      }
+
+      const basename = buildExportBasename(clip);
+      return { filePath, basename };
+    },
+
+    async exportSrt(userId, clipId) {
+      validateClipId(clipId);
+      const clip = await clipRepository.findByIdWithOwnership(clipId, userId);
+      if (!clip) throw new AppError(404, 'CLIP_NOT_FOUND', 'Klip tidak ditemukan.');
+
+      let srtPath = clip.srtPath;
+
+      if (!srtPath || !fs.existsSync(srtPath)) {
+        if (clip.status !== 'rendered') {
+          throw new AppError(409, 'CLIP_NOT_RENDERED', 'Klip belum siap untuk diunduh.');
+        }
+
+        const words = clip.transcriptJson?.words;
+        if (!words || words.length === 0) {
+          throw new AppError(409, 'NO_TRANSCRIPT', 'Tidak ada transkrip untuk diekspor.');
+        }
+
+        const project = clip.project;
+        const clipDir = path.resolve(__dirname, '../../uploads', project.id, clip.id);
+        const generatedPath = path.join(clipDir, 'subtitles.srt').replaceAll('\\', '/');
+        const result = generateSrt(clip.transcriptJson, generatedPath);
+        if (!result.success) {
+          throw new AppError(500, 'SRT_GENERATION_FAILED', 'Gagal membuat berkas SRT.');
+        }
+
+        srtPath = generatedPath;
+        await clipRepository.updateById(clipId, { srtPath });
+      }
+
+      if (!fs.existsSync(srtPath)) {
+        throw new AppError(404, 'FILE_NOT_FOUND', 'Berkas SRT tidak ditemukan di disk.');
+      }
+
+      const basename = buildExportBasename(clip);
+      return { filePath: srtPath, basename };
     },
   };
 }

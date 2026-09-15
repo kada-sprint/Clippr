@@ -23,6 +23,8 @@ function createClipEditRoutes({
   router.patch('/clips/:clipId', session, requireAuth, controller.update);
   router.get('/clips/:clipId/transcript', session, requireAuth, controller.getTranscript);
   router.post('/clips/:clipId/render', session, requireAuth, controller.render);
+  router.get('/clips/:clipId/export/mp4', session, requireAuth, controller.exportMp4);
+  router.get('/clips/:clipId/export/srt', session, requireAuth, controller.exportSrt);
 
   return router;
 }
