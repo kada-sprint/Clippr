@@ -3,9 +3,10 @@ const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const AppError = require('../utils/app-error');
+const env = require('../config/env');
 
 // Konfigurasi folder penyimpanan lokal temporer
-const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/videos');
+const UPLOAD_DIR = path.join(env.mediaRoot, 'uploads', 'videos');
 
 // Pastikan folder penyimpanan uploads/videos/ tersedia saat modul diinisialisasi
 if (!fs.existsSync(UPLOAD_DIR)) {

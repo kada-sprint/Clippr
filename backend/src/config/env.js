@@ -1,6 +1,12 @@
 const path = require('node:path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
+const mediaRoot = process.env.MEDIA_ROOT || path.resolve(__dirname, '../..');
+
+function resolveMediaPath(relativePath) {
+  return path.resolve(mediaRoot, relativePath);
+}
+
 module.exports = {
   port: Number(process.env.PORT || 3000),
   host: process.env.HOST || '127.0.0.1',
@@ -18,4 +24,6 @@ module.exports = {
   ffprobePath: process.env.FFPROBE_PATH || '',
   redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
   queuePrefix: process.env.QUEUE_PREFIX || 'cuplik-local',
+  mediaRoot,
+  resolveMediaPath,
 };

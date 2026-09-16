@@ -5,6 +5,7 @@ const clipModel = require('../models/clip.model');
 const projectModel = require('../models/project.model');
 const { generateSrt } = require('./srtGenerator');
 const { buildExportBasename } = require('../utils/filenameUtils');
+const env = require('../config/env');
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -110,7 +111,7 @@ function createClipService({
         const project = clip.project;
 
         const layout = project.selectedLayout || 'slide-cam';
-        const clipDir = path.resolve(__dirname, '../../uploads', project.id, clip.id);
+        const clipDir = path.join(env.mediaRoot, 'uploads', project.id, clip.id);
         const verticalPath = path.join(clipDir, 'vertical.mp4').replaceAll('\\', '/');
         const subtitledPath = path.join(clipDir, 'subtitled.mp4').replaceAll('\\', '/');
         const srtPath = path.join(clipDir, 'subtitles.srt').replaceAll('\\', '/');
@@ -123,7 +124,7 @@ function createClipService({
               : Math.max(60_000, clipDuration * 1_500);
 
             const reframeResult = await renderClip(
-              project.sourceVideoPath,
+              env.resolveMediaPath(project.sourceVideoPath),
               Number(clip.startTime),
               Number(clip.endTime),
               verticalPath,
@@ -219,7 +220,7 @@ function createClipService({
         }
 
         const project = clip.project;
-        const clipDir = path.resolve(__dirname, '../../uploads', project.id, clip.id);
+        const clipDir = path.join(env.mediaRoot, 'uploads', project.id, clip.id);
         const generatedPath = path.join(clipDir, 'subtitles.srt').replaceAll('\\', '/');
         const result = generateSrt(clip.transcriptJson, generatedPath);
         if (!result.success) {

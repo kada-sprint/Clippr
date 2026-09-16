@@ -23,6 +23,12 @@ function createMediaQueue(connection) {
 
 async function dispatchPending(queue, repository) {
   for (const record of await repository.listUnfinished()) {
+    // Only re-dispatch jobs that were never picked up by BullMQ (pending status).
+    // Running jobs are handled by BullMQ's built-in stall detection — re-dispatching
+    // them creates a race condition where a new claim overwrites the attemptToken,
+    // causing STALE_ATTEMPT errors in the original worker.
+    if (record.status === 'running') continue;
+
     const existing = await queue.getJob(record.id);
     if (existing) {
       const state = await existing.getState();

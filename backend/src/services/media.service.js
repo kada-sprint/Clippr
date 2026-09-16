@@ -2,8 +2,9 @@ const path = require('node:path');
 const AppError = require('../utils/app-error');
 const clipModel = require('../models/clip.model');
 const projectModel = require('../models/project.model');
+const env = require('../config/env');
 
-const MEDIA_ROOT = path.resolve(__dirname, '../../');
+const MEDIA_ROOT = env.mediaRoot;
 const ALLOWED_FILES = new Set(['vertical.mp4', 'subtitled.mp4']);
 
 function createMediaService({

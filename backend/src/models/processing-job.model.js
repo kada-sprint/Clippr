@@ -19,7 +19,9 @@ function create(transaction, projectId, clipId = null, checkpoint = null) {
 
 function listUnfinished() {
   return getPrisma().processingJob.findMany({
-    where: { status: { in: activeStatuses } }, orderBy: { createdAt: 'asc' },
+    where: { status: { in: activeStatuses } },
+    select: { id: true, projectId: true, clipId: true, kind: true, status: true, attemptToken: true },
+    orderBy: { createdAt: 'asc' },
   });
 }
 
@@ -35,7 +37,7 @@ async function withJob(id, action) {
 
 function claim(id) {
   return withJob(id, async (transaction, job) => {
-    if (!activeStatuses.includes(job.status)) return null;
+    if (job.status !== 'pending') return null;
     const attemptToken = randomUUID();
     const updated = await transaction.processingJob.update({ where: { id }, data: {
       status: 'running', attemptToken, attempts: { increment: 1 }, errorCode: null,

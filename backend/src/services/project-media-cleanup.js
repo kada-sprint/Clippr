@@ -1,12 +1,13 @@
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const AppError = require('../utils/app-error');
+const env = require('../config/env');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const temporarySubtitle = /^_subtitles_\d+\.ass$/;
 const attemptOutput = /^(vertical|subtitled|subtitles)-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(mp4|srt)$/i;
 
-function createProjectMediaCleanup({ mediaRoot = path.resolve(__dirname, '../..'), files = fs } = {}) {
+function createProjectMediaCleanup({ mediaRoot = env.mediaRoot, files = fs } = {}) {
   const root = path.resolve(mediaRoot);
   function unsafe() {
     return new AppError(503, 'UNSAFE_MEDIA_PATH', 'Lokasi media tidak aman untuk dihapus. Hubungi pengelola.');

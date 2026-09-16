@@ -1,8 +1,10 @@
+const path = require('node:path');
 const AppError = require('../utils/app-error');
 const uploadModel = require('../models/upload.model');
 const { validateVideo: defaultValidateVideo } = require('../utils/ffmpeg');
 const { removeUploadedFile: defaultRemoveFile } = require('../middlewares/upload.middleware');
 const { validateAndFormatVocabulary, validateLayout, validateProjectId } = require('./project.service');
+const env = require('../config/env');
 
 function toPublicProject(project) {
   return {
@@ -39,7 +41,7 @@ function createUploadService({
         const layout = validateLayout(selectedLayout);
         const vocabulary = validateAndFormatVocabulary(customVocabulary);
         await validateVideo(file.path);
-        const sourceVideoPath = file.path.replaceAll('\\', '/');
+        const sourceVideoPath = path.relative(env.mediaRoot, file.path).replaceAll('\\', '/');
         const project = await repository.attachSource({
           id: projectId,
           userId,

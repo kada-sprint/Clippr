@@ -11,6 +11,7 @@ x-backend: &backend
     REDIS_URL: redis://redis:6379
     FFMPEG_PATH: /usr/bin/ffmpeg
     FFPROBE_PATH: /usr/bin/ffprobe
+    MEDIA_ROOT: /app/backend
   volumes:
     - media-data:/app/backend/uploads
     - ./backend/certs:/app/backend/certs:ro

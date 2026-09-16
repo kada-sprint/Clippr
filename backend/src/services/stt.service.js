@@ -196,7 +196,7 @@ function normalizeSTTResponse(raw, audioFilePath = '') {
       if (!Number.isFinite(startVal)) {
         startVal = Number((idx * 0.4).toFixed(2));
       }
-      if (!Number.isFinite(endVal) || endVal < startVal) {
+      if (!Number.isFinite(endVal) || endVal <= startVal) {
         endVal = Number((startVal + 0.35).toFixed(2));
       }
 

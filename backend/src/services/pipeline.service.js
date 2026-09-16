@@ -5,6 +5,7 @@ const { extractAudio } = require('../utils/ffmpeg');
 const { transcribeAudioChunked } = require('./stt.service');
 const { curateClips, insertClips } = require('./curation.service');
 const { renderMedia } = require('./render.service');
+const env = require('../config/env');
 
 function validateTranscript(transcript) {
   if (!Array.isArray(transcript?.words) || !transcript.words.length || transcript.words.some((word) =>
@@ -24,7 +25,8 @@ function createPipelineService({ repository = jobs, extract = extractAudio, tran
       throw new AppError(404, 'CLIP_NOT_FOUND', 'Relasi klip dan proyek tidak valid.');
     }
     if (!project.sourceVideoPath) throw new AppError(400, 'SOURCE_MISSING', 'Upload ulang sumber diperlukan.');
-    try { await files.access(project.sourceVideoPath); }
+    const sourceVideoPath = env.resolveMediaPath(project.sourceVideoPath);
+    try { await files.access(sourceVideoPath); }
     catch { throw new AppError(400, 'SOURCE_MISSING', 'Upload ulang sumber diperlukan.'); }
 
     async function stage(processingStage) {
@@ -39,7 +41,7 @@ function createPipelineService({ repository = jobs, extract = extractAudio, tran
         let audio;
         let transcript;
         try {
-          audio = await extract(project.sourceVideoPath);
+          audio = await extract(sourceVideoPath);
           await stage('transcribe');
           transcript = await transcribe(audio, project.customVocabulary);
           validateTranscript(transcript);

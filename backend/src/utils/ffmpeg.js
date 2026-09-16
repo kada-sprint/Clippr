@@ -4,9 +4,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const crypto = require('node:crypto');
 const AppError = require('./app-error');
+const env = require('../config/env');
 
-// Konfigurasi folder penyimpanan lokal audio: backend/uploads/audios/
-const AUDIO_DIR = path.resolve(__dirname, '../../uploads/audios');
+// Konfigurasi folder penyimpanan lokal audio
+const AUDIO_DIR = path.join(env.mediaRoot, 'uploads', 'audios');
 
 // Pastikan folder penyimpanan uploads/audios/ tersedia
 if (!fs.existsSync(AUDIO_DIR)) {

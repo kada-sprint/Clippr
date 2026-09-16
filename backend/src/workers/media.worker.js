@@ -13,7 +13,7 @@ function isTransient(error) {
 function createProcessor({ jobs = repository, processJob = createPipelineService() } = {}) {
   return async (queued) => {
     if (queued.data.jobId !== queued.id) throw new UnrecoverableError('INVALID_JOB');
-    const job = await jobs.claim(queued.id);
+    let job = await jobs.claim(queued.id);
     if (!job) return;
     if (job.projectId !== queued.data.projectId || (job.clipId || undefined) !== queued.data.clipId || job.kind !== queued.name) {
       await jobs.fail(job.id, job.attemptToken, 'INVALID_JOB', true);
@@ -25,7 +25,12 @@ function createProcessor({ jobs = repository, processJob = createPipelineService
       await processJob(job);
       console.log(JSON.stringify({ jobId: job.id, projectId: job.projectId, status: 'completed', durationMs: Date.now() - startedAt }));
     } catch (error) {
-      const terminal = !isTransient(error) || job.attempts >= 3;
+      // STALE_ATTEMPT: BullMQ re-dispatched the job while the original worker was
+      // still processing (e.g. during a long STT call). The claim() guard now
+      // rejects re-claiming running jobs, so this happens when the original worker's
+      // token is stale. Fail as non-terminal so BullMQ retries from the last checkpoint.
+      const stale = error.code === 'STALE_ATTEMPT';
+      const terminal = (stale ? false : !isTransient(error)) || job.attempts >= 3;
       const code = error.code || 'PROCESSING_FAILED';
       await jobs.fail(job.id, job.attemptToken, code, terminal);
       console.error(JSON.stringify({ jobId: job.id, projectId: job.projectId, code, terminal, durationMs: Date.now() - startedAt }));
@@ -45,6 +50,8 @@ async function startWorker() {
   await queue.setGlobalConcurrency(1);
   const worker = new Worker('media', createProcessor(), {
     connection: consumer, prefix: env.queuePrefix, concurrency: 1, maxStalledCount: 2,
+    lockDuration: 300_000,
+    stalledInterval: 120_000,
   });
   worker.on('error', () => console.error('[Worker] Antrean terganggu; koneksi akan dicoba kembali.'));
   worker.on('failed', (job) => console.error(JSON.stringify({ jobId: job?.id, status: 'queue-failed' })));

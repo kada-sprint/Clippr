@@ -11,7 +11,8 @@ RUN npm ci && npm run db:generate
 COPY src ./src
 COPY scripts ./scripts
 COPY server.js worker.js ./
-RUN mkdir -p uploads certs && chown -R node:node uploads certs
+ENV MEDIA_ROOT=/app/backend
+RUN mkdir -p uploads/videos uploads/audios certs && chown -R node:node uploads certs
 USER node
 EXPOSE 3000
 CMD ["node", "server.js"]
