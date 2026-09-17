@@ -25,6 +25,14 @@ function listUnfinished() {
   });
 }
 
+async function recoverInterrupted(prisma = getPrisma()) {
+  const result = await prisma.processingJob.updateMany({
+    where: { status: 'running' },
+    data: { status: 'pending', attemptToken: null, errorCode: 'WORKER_INTERRUPTED' },
+  });
+  return result.count;
+}
+
 async function withJob(id, action) {
   const target = await getPrisma().processingJob.findUnique({ where: { id }, include: { project: true } });
   if (!target) return null;
@@ -89,4 +97,4 @@ function retry(id) {
   });
 }
 
-module.exports = { activeStatuses, assertNoActiveJob, create, listUnfinished, claim, guarded, fail, retry };
+module.exports = { activeStatuses, assertNoActiveJob, create, listUnfinished, recoverInterrupted, claim, guarded, fail, retry };

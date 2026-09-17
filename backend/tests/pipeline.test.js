@@ -7,6 +7,7 @@ const { createProcessor } = require('../src/workers/media.worker');
 const { dispatchPending } = require('../src/queues/media.queue');
 const { createUploadService } = require('../src/services/upload.service');
 const { validateLayout } = require('../src/services/project.service');
+const { recoverInterrupted } = require('../src/models/processing-job.model');
 
 const projectId = '11111111-1111-4111-8111-111111111111';
 const transcript = { words: [{ word: 'Halo', start_time: 0, end_time: 1, confidence: 1 }] };
@@ -107,6 +108,20 @@ test('rerender reads only the requested clip and does not change project complet
   await process(job);
   assert.ok(projectUpdateCalled, 'project status must be reset to idle after render-clip');
   await assert.rejects(process({ ...job, clip: { projectId: 'another-project' } }), { code: 'CLIP_NOT_FOUND' });
+});
+
+test('worker startup fences interrupted database jobs before Redis re-dispatch', async () => {
+  let query;
+  const count = await recoverInterrupted({
+    processingJob: {
+      async updateMany(input) { query = input; return { count: 2 }; },
+    },
+  });
+  assert.equal(count, 2);
+  assert.deepEqual(query, {
+    where: { status: 'running' },
+    data: { status: 'pending', attemptToken: null, errorCode: 'WORKER_INTERRUPTED' },
+  });
 });
 
 test('R2 pipeline downloads source, uploads render outputs, stores object keys, and cleans temporary files', async () => {
