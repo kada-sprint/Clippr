@@ -42,6 +42,8 @@ function createProcessor({ jobs = repository, processJob = createPipelineService
 
 async function startWorker() {
   // Fail startup clearly if the required migration/configuration is missing.
+  const recovered = await repository.recoverInterrupted();
+  if (recovered > 0) console.log(`[Worker] Memulihkan ${recovered} job yang terputus.`);
   await repository.listUnfinished();
   const producer = createConnection();
   const consumer = createConnection(true);
