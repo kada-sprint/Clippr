@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import { formatTime } from './editor.example.js';
 import ClipCard from './components/ClipCard.jsx';
@@ -240,6 +240,10 @@ export default function EditorPage() {
   return (
     <section className="editor-page" aria-labelledby="editor-title">
       <header className="editor-page-heading">
+        <Link className="button secondary editor-back-link" to="/projects">
+          <Icon name="arrow-left" size={16} />
+          Kembali ke My Project
+        </Link>
         <h1 id="editor-title">Review & Editor</h1>
         {!validProjectId && (
           <p>Buka proyek dari dashboard untuk melihat klip hasil kurasi.</p>

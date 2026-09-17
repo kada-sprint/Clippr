@@ -1,5 +1,6 @@
 .editor-page { max-width: 1450px; margin: auto; padding: 28px 28px 60px; }
 .editor-page-heading { padding-bottom: 26px; }
+.editor-back-link { margin-bottom: 18px; }
 .editor-tag { display: inline-block; color: #94d6ff; font-size: 10px; letter-spacing: .6px; background: #20334a; border: 1px solid #34506b; padding: 5px 8px; border-radius: 5px; }
 .editor-page-heading h1 { font-size: 29px; margin: 12px 0 8px; }
 .editor-page-heading p, .editor-export small { color: #a8b6c8; font-size: 12px; line-height: 1.8; }

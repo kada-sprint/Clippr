@@ -1,5 +1,6 @@
 .queue-page { max-width: 1400px; margin: 0 auto; padding: 30px 28px 80px; }
 .queue-heading { margin-bottom: 27px; }
+.queue-back-link { margin-bottom: 18px; }
 .queue-badge { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 20px; background: #223140; color: #92d6ff; font-size: 10px; font-weight: 700; letter-spacing: .7px; }
 .queue-badge > span { width: 7px; height: 7px; border-radius: 50%; background: #92d6ff; }
 .queue-heading h1 { margin: 12px 0 8px; font-size: clamp(25px, 2.5vw, 34px); line-height: 1.2; letter-spacing: -1px; }

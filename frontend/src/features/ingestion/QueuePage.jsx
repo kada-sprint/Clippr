@@ -71,6 +71,10 @@ export default function QueuePage() {
   return (
     <section className="queue-page" aria-labelledby="queue-title">
       <header className="queue-heading">
+        <Link className="button secondary queue-back-link" to="/projects">
+          <Icon name="arrow-left" size={16} />
+          Kembali ke My Project
+        </Link>
         <span className="queue-badge">
           <span style={isTranscribed ? { background: '#86efac' } : undefined} />
           {project?.status === 'error' ? 'PEMROSESAN GAGAL' : project?.isBusy ? 'SEDANG DIPROSES' : project?.clipCount > 0 ? 'SIAP DITINJAU' : 'MENUNGGU VIDEO'}
