@@ -8,16 +8,15 @@ function createMediaController({
     async serveClipMedia(req, res, next) {
       try {
         const { projectId, clipId, filename } = req.params;
-        const filePath = await mediaService.resolveAndVerify(
+        const media = await mediaService.resolveAndVerify(
           req.userId, projectId, clipId, filename,
         );
 
+        if (media.url) return res.redirect(302, media.url);
         const ext = path.extname(filename).toLowerCase();
-        const contentType = ext === '.srt' ? 'application/x-subrip' : 'video/mp4';
-
-        res.set('Content-Type', contentType);
+        res.set('Content-Type', media.contentType || (ext === '.srt' ? 'application/x-subrip' : 'video/mp4'));
         res.set('Cache-Control', 'private, max-age=3600');
-        res.sendFile(filePath);
+        res.sendFile(media.filePath);
       } catch (error) {
         next(error);
       }

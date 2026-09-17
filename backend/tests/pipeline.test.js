@@ -1,5 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
+const os = require('node:os');
 const { createPipelineService, validateTranscript } = require('../src/services/pipeline.service');
 const { createProcessor } = require('../src/workers/media.worker');
 const { dispatchPending } = require('../src/queues/media.queue');
@@ -105,6 +107,65 @@ test('rerender reads only the requested clip and does not change project complet
   await process(job);
   assert.ok(projectUpdateCalled, 'project status must be reset to idle after render-clip');
   await assert.rejects(process({ ...job, clip: { projectId: 'another-project' } }), { code: 'CLIP_NOT_FOUND' });
+});
+
+test('R2 pipeline downloads source, uploads render outputs, stores object keys, and cleans temporary files', async () => {
+  const clipId = '22222222-2222-4222-8222-222222222222';
+  const temporaryRoot = path.join(os.tmpdir(), 'cuplik-worker-test');
+  const uploads = [];
+  const clipUpdates = [];
+  let downloaded;
+  let removed;
+  const job = {
+    id: 'job', kind: 'pipeline', checkpoint: 'analyze', attemptToken: 'token',
+    project: { id: projectId, sourceVideoPath: `sources/${projectId}/upload.mp4` },
+  };
+  const process = createPipelineService({
+    repository: { guarded: async (id, token, action) => action({
+      project: { update: async () => ({}) },
+      processingJob: { update: async () => ({}) },
+      clip: {
+        findMany: async () => [{ id: clipId, status: 'error' }],
+        update: async ({ data }) => { clipUpdates.push(data); return {}; },
+      },
+    }) },
+    files: {
+      mkdtemp: async (prefix) => { assert.equal(prefix, path.join(os.tmpdir(), 'cuplik-worker-')); return temporaryRoot; },
+      rm: async (target, options) => { removed = { target, options }; },
+    },
+    objectStorage: {
+      downloadToFile: async (key, target) => { downloaded = { key, target }; },
+      uploadFile: async (input) => { uploads.push(input); },
+    },
+    render: async (project, clip, token, options) => {
+      assert.equal(options.sourceVideoPath, path.join(temporaryRoot, 'source.mp4'));
+      assert.equal(options.outputDirectory, path.join(temporaryRoot, clipId));
+      return {
+        status: 'rendered',
+        clipVideoPath: path.join(options.outputDirectory, 'vertical-token.mp4'),
+        subtitledVideoPath: path.join(options.outputDirectory, 'subtitled-token.mp4'),
+        srtPath: path.join(options.outputDirectory, 'subtitles-token.srt'),
+      };
+    },
+  });
+
+  await process(job);
+  assert.deepEqual(downloaded, {
+    key: `sources/${projectId}/upload.mp4`,
+    target: path.join(temporaryRoot, 'source.mp4'),
+  });
+  assert.deepEqual(uploads.map(({ key, contentType }) => ({ key, contentType })), [
+    { key: `exports/${projectId}/${clipId}/vertical.mp4`, contentType: 'video/mp4' },
+    { key: `exports/${projectId}/${clipId}/subtitled.mp4`, contentType: 'video/mp4' },
+    { key: `exports/${projectId}/${clipId}/subtitles.srt`, contentType: 'application/x-subrip' },
+  ]);
+  assert.deepEqual(clipUpdates[1], {
+    status: 'rendered',
+    clipVideoPath: `exports/${projectId}/${clipId}/vertical.mp4`,
+    subtitledVideoPath: `exports/${projectId}/${clipId}/subtitled.mp4`,
+    srtPath: `exports/${projectId}/${clipId}/subtitles.srt`,
+  });
+  assert.deepEqual(removed, { target: temporaryRoot, options: { recursive: true, force: true } });
 });
 
 test('processor retries transient failures but stops invalid input and third failure', async () => {

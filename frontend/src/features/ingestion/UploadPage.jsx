@@ -14,6 +14,7 @@ export default function UploadPage() {
   const [layout, setLayout] = useState('SLIDE_CAM');
   const [subtitleStyle, setSubtitleStyle] = useState('clean');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   async function handleSubmit(event) {
@@ -21,6 +22,7 @@ export default function UploadPage() {
     if (!file || isSubmitting) return;
 
     setIsSubmitting(true);
+    setUploadProgress(0);
     setErrorMessage('');
 
     try {
@@ -28,6 +30,7 @@ export default function UploadPage() {
         file,
         layout,
         vocabulary: terms,
+        onProgress: setUploadProgress,
       });
 
       navigate(`/queue?projectId=${project.id}`, { state: { project } });
@@ -35,6 +38,7 @@ export default function UploadPage() {
       setErrorMessage(error.message || 'Gagal mengunggah dan memproses video.');
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(null);
     }
   }
 
@@ -100,11 +104,17 @@ export default function UploadPage() {
         )}
         <button type="button" className="button primary" disabled={!file || isSubmitting} onClick={handleSubmit} aria-describedby="upload-availability">
           <Icon name={isSubmitting ? 'clock' : 'video'} size={19} />
-          {isSubmitting ? 'Memproses Video & Transkripsi…' : 'Mulai Proses'} <span>3–5 KLIP</span>
+          {isSubmitting
+            ? uploadProgress < 100
+              ? `Mengunggah Video ${uploadProgress ?? 0}%`
+              : 'Menyiapkan Pemrosesan…'
+            : 'Mulai Proses'} <span>3–5 KLIP</span>
         </button>
         <p id="upload-availability">
           {isSubmitting
-            ? 'Sedang mengunggah, mengekstrak audio, dan mentranskripsi dengan STT Whisper. Mohon tunggu beberapa saat…'
+            ? uploadProgress < 100
+              ? `Video sedang diunggah langsung ke penyimpanan aman (${uploadProgress ?? 0}%). Jangan tutup halaman ini.`
+              : 'Upload selesai. Menyiapkan antrean ekstraksi audio dan transkripsi…'
             : file
               ? `Video "${file.name}" siap diproses. Klik Mulai Proses untuk memulai ekstraksi dan transkripsi.`
               : 'Pilih file video MP4 atau MOV di atas untuk memulai pemrosesan.'}

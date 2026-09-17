@@ -1,5 +1,6 @@
 const path = require('node:path');
 const fs = require('node:fs/promises');
+const { createObjectStorage, validateObjectKey } = require('./object-storage.service');
 
 const extensions = { source: ['.mp4', '.mov'], mp4: ['.mp4'], srt: ['.srt'] };
 
@@ -17,15 +18,32 @@ function unsafePath() {
 
 // Deliberately unwired: the repository must provide an exclusive claim shared
 // with upload/render jobs. A status read alone cannot authorize deletion.
-function createRetentionService({ repository, mediaRoot, files = fs, clock = () => new Date() }) {
+function createRetentionService({ repository, mediaRoot, files = fs, clock = () => new Date(),
+  objectStorage, objectStorageFactory = createObjectStorage }) {
   if (!repository || typeof repository.listExpired !== 'function' ||
       typeof repository.withCleanupClaim !== 'function' ||
       typeof mediaRoot !== 'string' || !path.isAbsolute(mediaRoot)) {
     throw new TypeError('Retensi memerlukan repository dengan klaim eksklusif dan mediaRoot absolut.');
   }
   const root = path.resolve(mediaRoot);
+  function storage() {
+    if (!objectStorage) objectStorage = objectStorageFactory();
+    return objectStorage;
+  }
 
   async function removeMedia(media) {
+    if (typeof media.path === 'string' && (media.path.startsWith('sources/') || media.path.startsWith('exports/'))) {
+      try {
+        validateObjectKey(media.path);
+      } catch {
+        throw unsafePath();
+      }
+      const expectedPrefix = media.kind === 'source' ? 'sources/' : 'exports/';
+      if (!media.path.startsWith(expectedPrefix) ||
+          !extensions[media.kind]?.includes(path.posix.extname(media.path).toLowerCase())) throw unsafePath();
+      await storage().delete(media.path);
+      return 'cleaned';
+    }
     if (!extensions[media.kind]?.includes(path.extname(media.path || '').toLowerCase()) ||
         !path.isAbsolute(media.path) || !inside(root, path.resolve(media.path))) {
       throw unsafePath();

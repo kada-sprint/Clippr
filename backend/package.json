@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "node --watch-path=src server.js",
     "start": "node server.js",
+    "start:production": "node production.js",
     "worker": "node worker.js",
     "worker:dev": "node --watch-path=src worker.js",
     "job:retry": "node scripts/retry-job.js",
@@ -20,6 +21,8 @@
     "google:check": "node scripts/check-google.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1134.0",
+    "@aws-sdk/s3-request-presigner": "^3.1134.0",
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "@prisma/client": "6.19.3",
     "bullmq": "5.81.5",

@@ -24,6 +24,11 @@ module.exports = {
   ffprobePath: process.env.FFPROBE_PATH || '',
   redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
   queuePrefix: process.env.QUEUE_PREFIX || 'cuplik-local',
+  r2AccountId: process.env.R2_ACCOUNT_ID || '',
+  r2AccessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+  r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  r2Bucket: process.env.R2_BUCKET || '',
+  r2Endpoint: process.env.R2_ENDPOINT || '',
   mediaRoot,
   resolveMediaPath,
 };

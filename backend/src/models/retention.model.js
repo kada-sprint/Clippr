@@ -105,10 +105,10 @@ async function withCleanupClaim(candidate, now, callback) {
       if (!project || !project.sourceVideoPath || !project.sourceExpiresAt || project.sourceExpiresAt > now) return;
       media = { id: project.id, kind: 'source', path: project.sourceVideoPath, expiresAt: project.sourceExpiresAt };
       clearPath = async () => {
-        await transaction.processingJob.deleteMany({ where: { projectId: project.id } });
-        await transaction.clip.deleteMany({ where: { projectId: project.id } });
-        await transaction.llmCall.deleteMany({ where: { projectId: project.id } });
-        await transaction.project.delete({ where: { id: project.id } });
+        await transaction.project.update({
+          where: { id: project.id },
+          data: { sourceVideoPath: null, sourceExpiresAt: null },
+        });
       };
     } else {
       const clip = await transaction.clip.findUnique({

@@ -42,6 +42,21 @@ async function createForUser(userId) {
   });
 }
 
+async function deleteEmpty(id, userId) {
+  return getPrisma().project.deleteMany({
+    where: {
+      id,
+      userId,
+      status: 'idle',
+      processingStage: null,
+      sourceVideoPath: null,
+      transcriptJson: null,
+      clips: { none: {} },
+      processingJobs: { none: {} },
+    },
+  });
+}
+
 async function findByIdForUser(id, userId) {
   return getPrisma().project.findFirst({
     where: { id, userId },
@@ -116,6 +131,7 @@ async function updateLastEditActivity(projectId) {
 module.exports = {
   listByUserId,
   createForUser,
+  deleteEmpty,
   findByIdForUser,
   updateSetupIfEmpty,
   deleteIfInactive,

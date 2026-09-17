@@ -23,6 +23,7 @@ function createApp({
   production = env.production,
 } = {}) {
   const app = express();
+  if (production) app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(cors({ origin: frontendOrigin, credentials: true, methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'] }));
   app.use(express.json({ limit: '20kb' }));

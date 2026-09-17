@@ -11,7 +11,7 @@ function createSessionMiddleware({ secret, secure }) {
     name: 'clippr_session',
     keys: [secret],
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: secure ? 'none' : 'lax',
     secure,
     path: '/',
     maxAge: SESSION_DURATION_MS,

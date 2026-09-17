@@ -17,7 +17,22 @@ test('HTTP upload/render admission returns 202 and validates session/origin befo
   const app = createApp({
     sessionSecret: 'queue-test-session-secret-at-least-32-characters', frontendOrigin: origin, production: false,
     authenticateGoogle: async () => ({ id: 'owner' }), getCurrentUser: async () => ({ id: 'owner' }),
-    uploadService: { directUpload: upload, uploadSource: upload },
+    uploadService: {
+      directUpload: upload,
+      uploadSource: upload,
+      initiate: async ({ userId, body }) => {
+        assert.equal(userId, 'owner');
+        assert.equal(body.file_name, 'video.mp4');
+        admitted++;
+        return { project: { id, status: 'idle' }, upload: { objectKey: `sources/${id}/video.mp4`, url: 'https://signed.example' } };
+      },
+      complete: async ({ projectId, userId, body }) => {
+        assert.equal(projectId, id); assert.equal(userId, 'owner');
+        assert.equal(body.object_key, `sources/${id}/video.mp4`);
+        admitted++;
+        return { id, status: 'processing', processingStage: 'ingest' };
+      },
+    },
     clipService: { renderClip: async (userId, clipId) => {
       assert.equal(userId, 'owner'); assert.equal(clipId, id); admitted++;
       return { id, status: 'rendering' };
@@ -31,7 +46,7 @@ test('HTTP upload/render admission returns 202 and validates session/origin befo
     method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: '{"credential":"test"}',
   });
   const cookie = login.headers.getSetCookie().map((item) => item.split(';')[0]).join('; ');
-  for (const route of ['/projects/upload', `/projects/${id}/source`, `/clips/${id}/render`]) {
+  for (const route of ['/projects/upload', '/projects/upload/initiate', `/projects/${id}/source`, `/projects/${id}/source/complete`, `/clips/${id}/render`]) {
     assert.equal((await fetch(`${base}${route}`, { method: 'POST', headers: { Origin: origin } })).status, 401);
     assert.equal((await fetch(`${base}${route}`, { method: 'POST', headers: { Origin: 'http://other.invalid', Cookie: cookie } })).status, 403);
   }
@@ -42,8 +57,20 @@ test('HTTP upload/render admission returns 202 and validates session/origin befo
     assert.equal(response.status, 202);
     assert.equal((await response.json()).project.processingStage, 'ingest');
   }
+  const initiate = await fetch(`${base}/projects/upload/initiate`, {
+    method: 'POST', headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_name: 'video.mp4' }),
+  });
+  assert.equal(initiate.status, 201);
+  assert.equal((await initiate.json()).upload.objectKey, `sources/${id}/video.mp4`);
+  const complete = await fetch(`${base}/projects/${id}/source/complete`, {
+    method: 'POST', headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ object_key: `sources/${id}/video.mp4` }),
+  });
+  assert.equal(complete.status, 202);
+  assert.equal((await complete.json()).project.processingStage, 'ingest');
   const response = await fetch(`${base}/clips/${id}/render`, { method: 'POST', headers: { Origin: origin, Cookie: cookie } });
   assert.equal(response.status, 202);
   assert.deepEqual(await response.json(), { clip: { id, status: 'rendering' } });
-  assert.equal(admitted, 3);
+  assert.equal(admitted, 5);
 });

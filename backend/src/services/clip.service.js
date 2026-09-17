@@ -5,6 +5,8 @@ const clipModel = require('../models/clip.model');
 const projectModel = require('../models/project.model');
 const { generateSrt } = require('./srtGenerator');
 const { buildExportBasename } = require('../utils/filenameUtils');
+const { createObjectStorage } = require('./object-storage.service');
+const env = require('../config/env');
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -39,7 +41,13 @@ function sanitizePatch(patch) {
 function createClipService({
   clipRepository = clipModel,
   projectRepository = projectModel,
+  objectStorage,
+  objectStorageFactory = createObjectStorage,
 } = {}) {
+  function storage() {
+    if (!objectStorage) objectStorage = objectStorageFactory();
+    return objectStorage;
+  }
   return {
     async listClips(userId, projectId) {
       validateProjectId(projectId);
@@ -123,11 +131,19 @@ function createClipService({
       }
 
       const filePath = clip.subtitledVideoPath || clip.clipVideoPath;
+      const basename = buildExportBasename(clip);
+      if (filePath?.startsWith('exports/')) {
+        const url = await storage().createDownloadUrl({
+          key: filePath,
+          expiresIn: 300,
+          responseContentDisposition: `attachment; filename="${basename}.mp4"`,
+        });
+        return { url, basename };
+      }
       if (!filePath || !fs.existsSync(filePath)) {
         throw new AppError(404, 'FILE_NOT_FOUND', 'Berkas video tidak ditemukan di disk.');
       }
 
-      const basename = buildExportBasename(clip);
       return { filePath, basename };
     },
 
@@ -137,6 +153,16 @@ function createClipService({
       if (!clip) throw new AppError(404, 'CLIP_NOT_FOUND', 'Klip tidak ditemukan.');
 
       let srtPath = clip.srtPath;
+
+      if (srtPath?.startsWith('exports/')) {
+        const basename = buildExportBasename(clip);
+        const url = await storage().createDownloadUrl({
+          key: srtPath,
+          expiresIn: 300,
+          responseContentDisposition: `attachment; filename="${basename}.srt"`,
+        });
+        return { url, basename };
+      }
 
       if (!srtPath || !fs.existsSync(srtPath)) {
         if (clip.status !== 'rendered') {

@@ -10,5 +10,6 @@
 !scripts/**
 !server.js
 !worker.js
+!production.js
 !Dockerfile
 !.dockerignore

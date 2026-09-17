@@ -7,8 +7,8 @@ const { generateSrt } = require('./srtGenerator');
 const AppError = require('../utils/app-error');
 const env = require('../config/env');
 
-async function renderMedia(project, clip, attemptToken) {
-  const directory = path.join(env.mediaRoot, 'uploads', project.id, clip.id);
+async function renderMedia(project, clip, attemptToken, options = {}) {
+  const directory = options.outputDirectory || path.join(env.mediaRoot, 'uploads', project.id, clip.id);
   const vertical = path.join(directory, `vertical-${attemptToken}.mp4`);
   const subtitled = path.join(directory, `subtitled-${attemptToken}.mp4`);
   const srt = path.join(directory, `subtitles-${attemptToken}.srt`);
@@ -22,7 +22,8 @@ async function renderMedia(project, clip, attemptToken) {
   const timeoutMs = layout === 'slide-only'
     ? Math.max(180_000, duration * 3_000)
     : Math.max(120_000, duration * 2_000);
-  const framed = await renderClip(env.resolveMediaPath(project.sourceVideoPath), Number(clip.startTime), Number(clip.endTime), vertical, layout,
+  const sourceVideoPath = options.sourceVideoPath || env.resolveMediaPath(project.sourceVideoPath);
+  const framed = await renderClip(sourceVideoPath, Number(clip.startTime), Number(clip.endTime), vertical, layout,
     { horizontalOffset: clip.horizontalOffset ?? 0, timeoutMs });
   if (!framed.success) throw new AppError(framed.error === 'timeout' ? 504 : 500, 'RENDER_FAILED', `Render video gagal: ${framed.error?.slice(0, 200) || 'unknown'}`);
   const burned = await burnSubtitles(vertical, clip.transcriptJson.words, clip.subtitleStyle, subtitled, { timeoutMs });

@@ -69,6 +69,25 @@ test('login issues HttpOnly session, survives a new app instance, and selects on
   assert.deepEqual((await bobMe.json()).user, bob);
 });
 
+test('production login trusts one platform proxy and issues cross-site secure cookies', async (t) => {
+  const productionOrigin = 'https://cuplik.vercel.app';
+  const url = await serve(t, { production: true, frontendOrigin: productionOrigin });
+  const response = await fetch(`${url}/google`, {
+    method: 'POST',
+    headers: {
+      Origin: productionOrigin,
+      'Content-Type': 'application/json',
+      'X-Forwarded-Proto': 'https',
+    },
+    body: JSON.stringify({ credential: 'alice-verified' }),
+  });
+  assert.equal(response.status, 200);
+  const headers = response.headers.getSetCookie().join(';');
+  assert.match(headers, /httponly/i);
+  assert.match(headers, /secure/i);
+  assert.match(headers, /samesite=none/i);
+});
+
 test('missing, forged and expired sessions never access the user store', async (t) => {
   const url = await serve(t, { getCurrentUser: () => assert.fail('must not read user') });
   for (const cookie of ['', 'clippr_session=forged; clippr_session.sig=fake',
