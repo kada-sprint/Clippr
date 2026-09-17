@@ -36,10 +36,11 @@ function buildFilterChain(command, options) {
   ].join(',');
 
   // Overlay camera at y=1344, then draw black subtitle band at y=1152
+  const finalFilter = `[slide][cam]overlay=0:1344,drawbox=x=0:y=1152:w=1080:h=192:color=black:t=fill${options.subtitleFilter ? ',' + options.subtitleFilter : ''}`;
   const filterGraph = [
     slideFilter,
     camFilter,
-    `[slide][cam]overlay=0:1344,drawbox=x=0:y=1152:w=1080:h=192:color=black:t=fill`,
+    finalFilter,
   ].join(';');
 
   command.complexFilter(filterGraph);

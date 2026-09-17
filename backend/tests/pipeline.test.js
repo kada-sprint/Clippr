@@ -157,7 +157,7 @@ test('R2 pipeline downloads source, uploads render outputs, stores object keys, 
       assert.equal(options.outputDirectory, path.join(temporaryRoot, clipId));
       return {
         status: 'rendered',
-        clipVideoPath: path.join(options.outputDirectory, 'vertical-token.mp4'),
+        clipVideoPath: null,
         subtitledVideoPath: path.join(options.outputDirectory, 'subtitled-token.mp4'),
         srtPath: path.join(options.outputDirectory, 'subtitles-token.srt'),
       };
@@ -170,13 +170,12 @@ test('R2 pipeline downloads source, uploads render outputs, stores object keys, 
     target: path.join(temporaryRoot, 'source.mp4'),
   });
   assert.deepEqual(uploads.map(({ key, contentType }) => ({ key, contentType })), [
-    { key: `exports/${projectId}/${clipId}/vertical.mp4`, contentType: 'video/mp4' },
     { key: `exports/${projectId}/${clipId}/subtitled.mp4`, contentType: 'video/mp4' },
     { key: `exports/${projectId}/${clipId}/subtitles.srt`, contentType: 'application/x-subrip' },
   ]);
   assert.deepEqual(clipUpdates[1], {
     status: 'rendered',
-    clipVideoPath: `exports/${projectId}/${clipId}/vertical.mp4`,
+    clipVideoPath: null,
     subtitledVideoPath: `exports/${projectId}/${clipId}/subtitled.mp4`,
     srtPath: `exports/${projectId}/${clipId}/subtitles.srt`,
   });
