@@ -1,6 +1,6 @@
 # C4-05: Cross-Template Validation Report
 
-**Generated:** 2026-09-13T10:17:15.103Z
+**Generated:** 2026-09-17T07:07:15.021Z
 **Test duration requested:** 5s
 **Duration tolerance:** ±0.1s
 
@@ -18,10 +18,10 @@
 
 ## Subtitle Safe-Zone Flag (PROVISIONAL)
 
-H-5 may proceed with subtitle placement now, under one constraint: avoid the bottom 30% of the canvas, which is currently occupied by Template A's camera band (stacked model, pre-PiP-rework).
+H-5 may proceed with subtitle placement now. Template A uses a three-band layout: slide (1080×1152), subtitle band (1080×192, black), camera (1080×576). Subtitle is rendered into the dedicated middle band with MarginV=672.
 
-**Verified against code:** Template A's camera overlay is placed at `overlay=0:1344` with dimensions 1080×576 — the bottom 30% of the 1920px canvas (1344px = 70% from top). This is the exact shipped boundary in `templateASlideCam.js:40`, not an estimate.
+**Verified against code:** Template A uses `concat` to stack three bands: slide (1080×1152), subtitle band (1080×192 black via `color` filter), and camera (1080×576). Subtitle MarginV is set to 672 to center text in the middle band. See `templateASlideCam.js:44` and `clip.service.js:150`.
 
-**Platform overlap:** TikTok and Reels interaction icons (like, comment, share, follow) sit in the mid-to-lower right edge of the screen. Template A's bottom band directly overlaps this area, carrying real conflict risk with subtitle text placed there.
+**Platform overlap:** TikTok and Reels interaction icons (like, comment, share, follow) sit in the mid-to-lower right edge of the screen. Template A's camera band (y=1344–1920) overlaps this area, but subtitle text is now in the middle band (y=1152–1344), reducing conflict risk.
 
 This constraint is TEMPORARY and should be re-validated once C4-02's PiP rework ships — at that point the exclusion zone shrinks to a small corner inset rather than a full-width band. When PiP lands, this safe-zone section must be explicitly updated to reflect the lifted constraint.
