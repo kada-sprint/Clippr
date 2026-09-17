@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Uji Google — Cuplik</title>
+  <style>
+    body { font: 16px/1.6 system-ui, sans-serif; max-width: 640px; margin: 64px auto; padding: 0 24px; color: #172033; }
+    #status { white-space: pre-wrap; padding: 16px; background: #f1f5f9; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Uji koneksi Google Cuplik</h1>
+  <p>Halaman diagnostik H-01. Token diverifikasi oleh backend lokal, tanpa menyimpan pengguna ke Aiven atau membuat sesi aplikasi.</p>
+  <div id="google-button"></div>
+  <p id="status" role="status">Memuat konfigurasi Google…</p>
+  <script>
+    const status = document.getElementById('status');
+    async function initializeGoogle() {
+      try {
+        const response = await fetch('/config');
+        if (!response.ok) throw new Error('Konfigurasi tidak tersedia.');
+        const { clientId } = await response.json();
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async ({ credential }) => {
+            status.textContent = 'Memverifikasi token di backend…';
+            try {
+              const result = await fetch('/api/auth/google', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential }),
+              });
+              const data = await result.json();
+              status.textContent = result.ok
+                ? 'Berhasil: token Google valid. Database tidak diubah. Ini belum membuat sesi login aplikasi.'
+                : `${data.error.code}: ${data.error.message}`;
+            } catch {
+              status.textContent = 'Backend tidak dapat dihubungi. Periksa terminal diagnostik.';
+            }
+          },
+        });
+        google.accounts.id.renderButton(document.getElementById('google-button'), { theme: 'outline', size: 'large' });
+        status.textContent = 'Klik tombol Google untuk menguji client ID dan verifikasi token.';
+      } catch {
+        status.textContent = 'Konfigurasi Google gagal dimuat. Periksa .env dan koneksi internet.';
+      }
+    }
+  </script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="initializeGoogle()" onerror="document.getElementById('status').textContent='SDK Google gagal dimuat. Periksa koneksi internet.'"></script>
+</body>
+</html>

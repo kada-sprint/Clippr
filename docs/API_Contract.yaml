@@ -1,0 +1,503 @@
+openapi: 3.0.3
+info:
+  title: Clippr API — Autentikasi
+  version: 0.4.0
+  description: >-
+    Health dan autentikasi Google diimplementasikan. Login menerbitkan cookie sesi
+    HttpOnly bertanda tangan dengan masa berlaku absolut satu jam; tidak diperpanjang
+    oleh polling. /auth/me membaca profil sesi dari database. CRUD proyek telah
+    diimplementasikan; admission upload/render menggunakan job persisten dan HTTP 202.
+    Detail pipeline terdapat pada docs/pipeline-contract.md; scheduler retensi belum aktif.
+    POST autentikasi memerlukan Origin yang persis cocok dengan FRONTEND_ORIGIN dan JSON.
+servers:
+  - url: http://localhost:3000/api
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Status proses HTTP; bukan readiness database
+      responses:
+        '200':
+          description: API berjalan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok] }
+  /auth/google:
+    post:
+      operationId: verifyGoogle
+      summary: Verifikasi ID token dan upsert profil berdasarkan Google subject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential]
+              properties:
+                credential: { type: string, minLength: 1, maxLength: 16384 }
+      responses:
+        '200':
+          description: Identitas diverifikasi dan disimpan; cookie clippr_session dan clippr_session.sig diterbitkan (HttpOnly, SameSite=Lax, Secure di produksi)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user:
+                    type: object
+                    required: [id, email, displayName, avatarUrl]
+                    properties:
+                      id: { type: string, description: Google subject }
+                      email: { type: string, format: email }
+                      displayName: { type: string }
+                      avatarUrl: { type: string, nullable: true }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: INVALID_GOOGLE_TOKEN
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '413':
+          description: PAYLOAD_TOO_LARGE (JSON body melebihi 20kb)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: ORIGIN_NOT_ALLOWED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '415':
+          description: JSON_REQUIRED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: GOOGLE_NOT_CONFIGURED, GOOGLE_UNAVAILABLE, DATABASE_NOT_CONFIGURED, DATABASE_UNAVAILABLE, SESSION_NOT_CONFIGURED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /auth/me:
+    get:
+      operationId: currentUser
+      summary: Profil pengguna dari cookie sesi aktif; identitas tidak diambil dari query/body
+      security:
+        - sessionCookie: []
+          sessionSignature: []
+      responses:
+        '200':
+          description: Profil terbaru dari database, Cache-Control no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: UNAUTHENTICATED (cookie hilang, palsu, kedaluwarsa, atau pengguna tidak ditemukan)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: SESSION_NOT_CONFIGURED, DATABASE_NOT_CONFIGURED, DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Hapus cookie sesi pada browser ini; idempoten
+      description: >-
+        Kirim JSON kosong dan Origin yang dikonfigurasi. Cookie bertanda tangan bersifat
+        stateless; salinan cookie yang sudah dicuri tetap berlaku hingga kedaluwarsa.
+        Pencabutan seluruh sesi lintas perangkat belum tersedia.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, maxProperties: 0 }
+      responses:
+        '204':
+          description: Cookie browser dihapus, Cache-Control no-store
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: ORIGIN_NOT_ALLOWED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '415':
+          description: JSON_REQUIRED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: SESSION_NOT_CONFIGURED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /projects:
+    get:
+      operationId: listProjects
+      summary: Daftar proyek milik pengguna aktif, terbaru dahulu
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      responses:
+        '200':
+          description: Daftar ringkasan proyek tanpa path media privat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [projects]
+                properties:
+                  projects:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProjectSummary' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '503': { $ref: '#/components/responses/DatabaseUnavailable' }
+    post:
+      operationId: createProject
+      summary: Buat proyek kosong milik pengguna aktif
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, maxProperties: 0 }
+      responses:
+        '201':
+          description: Proyek kosong dibuat dengan status idle
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [project]
+                properties:
+                  project: { $ref: '#/components/schemas/ProjectSummary' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/OriginNotAllowed' }
+        '415': { $ref: '#/components/responses/JsonRequired' }
+        '503': { $ref: '#/components/responses/DatabaseUnavailable' }
+  /projects/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getProject
+      summary: Detail dan status polling proyek milik pengguna aktif
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      responses:
+        '200':
+          description: Detail proyek tanpa path media atau transkrip
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [project]
+                properties:
+                  project: { $ref: '#/components/schemas/ProjectDetail' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/ProjectNotFound' }
+        '503': { $ref: '#/components/responses/DatabaseUnavailable' }
+    patch:
+      operationId: updateProject
+      summary: Simpan layout atau kamus sebelum sumber diunggah
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                selectedLayout: { $ref: '#/components/schemas/ProjectLayout' }
+                customVocabulary:
+                  type: string
+                  description: Maksimal 20 istilah unik dipisahkan koma
+      responses:
+        '200':
+          description: Metadata setup tersimpan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [project]
+                properties:
+                  project: { $ref: '#/components/schemas/ProjectDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/OriginNotAllowed' }
+        '404': { $ref: '#/components/responses/ProjectNotFound' }
+        '409':
+          description: PROJECT_NOT_EDITABLE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '415': { $ref: '#/components/responses/JsonRequired' }
+        '503': { $ref: '#/components/responses/DatabaseUnavailable' }
+    delete:
+      operationId: deleteProject
+      summary: Hapus proyek nonaktif beserta media, transkrip, klip, dan log LLM milik pengguna aktif
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      responses:
+        '204': { description: Media dan seluruh data proyek berhasil dihapus permanen }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/OriginNotAllowed' }
+        '404': { $ref: '#/components/responses/ProjectNotFound' }
+        '409':
+          description: PROJECT_BUSY - pipeline atau render klip masih aktif
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: DATABASE_UNAVAILABLE, UNSAFE_MEDIA_PATH, atau PROJECT_CLEANUP_FAILED. Jika pembersihan sebagian gagal, metadata dipertahankan untuk retry; sebagian media mungkin sudah terhapus.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /projects/upload:
+    post:
+      summary: Buat proyek dan terima sumber untuk pipeline worker
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      requestBody: { $ref: '#/components/requestBodies/SourceUpload' }
+      responses:
+        '202': { $ref: '#/components/responses/UploadAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/OriginNotAllowed' }
+  /projects/{id}/source:
+    post:
+      summary: Terima sumber pada proyek kosong milik pengguna
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody: { $ref: '#/components/requestBodies/SourceUpload' }
+      responses:
+        '202': { $ref: '#/components/responses/UploadAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/OriginNotAllowed' }
+        '404': { $ref: '#/components/responses/ProjectNotFound' }
+        '409':
+          description: PROJECT_BUSY atau PROJECT_NOT_UPLOADABLE
+  /clips/{clipId}/render:
+    post:
+      summary: Antrekan render satu klip menggunakan edit tersimpan
+      security: [{ sessionCookie: [], sessionSignature: [] }]
+      parameters:
+        - name: clipId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '202':
+          description: Job tersimpan; rendering juga mencakup waktu menunggu antrean
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [clip]
+                properties:
+                  clip:
+                    type: object
+                    required: [id, status]
+                    properties:
+                      id: { type: string, format: uuid }
+                      status: { type: string, enum: [rendering] }
+        '400':
+          description: INVALID_CLIP_ID atau SOURCE_MISSING
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/OriginNotAllowed' }
+        '404':
+          description: CLIP_NOT_FOUND, termasuk klip milik pengguna lain
+        '409':
+          description: PROJECT_BUSY atau ALREADY_RENDERING
+
+components:
+  requestBodies:
+    SourceUpload:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [video_file, selected_layout]
+            properties:
+              video_file: { type: string, format: binary }
+              selected_layout:
+                type: string
+                description: Nilai UI SLIDE_CAM/TALKING_HEAD/SLIDE_ONLY juga dinormalisasi ke nilai kanonik.
+                enum: [slide-cam, talking-head, slide-only, SLIDE_CAM, TALKING_HEAD, SLIDE_ONLY]
+              custom_vocabulary: { type: string, description: Maksimal 20 istilah unik dipisahkan koma }
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: clippr_session
+    sessionSignature:
+      type: apiKey
+      in: cookie
+      name: clippr_session.sig
+  schemas:
+    User:
+      type: object
+      required: [id, email, displayName, avatarUrl]
+      properties:
+        id: { type: string, description: Google subject }
+        email: { type: string, format: email }
+        displayName: { type: string }
+        avatarUrl: { type: string, nullable: true }
+    ProjectStatus:
+      type: string
+      enum: [idle, processing, TRANSCRIBED, error, deleting]
+      description: deleting adalah penghapusan yang sudah dimulai; upload/render ditolak, DELETE dapat dicoba ulang tanpa migrasi schema.
+    ProcessingStage:
+      type: string
+      enum: [ingest, transcribe, analyze, curate, render]
+      nullable: true
+    ProjectLayout:
+      type: string
+      enum: [slide-cam, talking-head, slide-only]
+    ProjectSummary:
+      type: object
+      required: [id, status, processingStage, selectedLayout, hasSource, clipCount, createdAt, isBusy]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ProjectStatus' }
+        processingStage: { $ref: '#/components/schemas/ProcessingStage' }
+        selectedLayout:
+          allOf: [{ $ref: '#/components/schemas/ProjectLayout' }]
+          nullable: true
+        hasSource: { type: boolean }
+        isBusy:
+          type: boolean
+          description: True selama pipeline aktif (termasuk TRANSCRIBED), status belum dikenali, atau ada klip rendering/processing. False pada deleting agar DELETE bisa dicoba ulang. Backend memeriksa ulang saat DELETE dengan kunci transaksi yang sama dengan awal upload/render.
+        clipCount: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+    ProjectDetail:
+      allOf:
+        - { $ref: '#/components/schemas/ProjectSummary' }
+        - type: object
+          required: [customVocabulary, lastEditActivityAt, sourceExpiresAt]
+          properties:
+            customVocabulary: { type: string }
+            lastEditActivityAt: { type: string, format: date-time, nullable: true }
+            sourceExpiresAt: { type: string, format: date-time, nullable: true }
+    SubtitleStyle:
+      type: string
+      enum: [clean, active_word_highlight]
+      default: clean
+      description: Gaya subtitle tersimpan per klip; kontrak endpoint klip masih draft.
+    ClipSubtitleUpdate:
+      type: object
+      description: >-
+        Bagian payload draft PATCH klip untuk gaya subtitle. Field boleh tidak dikirim
+        saat edit field lain; jika tidak dikirim, pertahankan nilai tersimpan.
+        Default clean berlaku saat klip dibuat, bukan untuk mereset edit parsial.
+      properties:
+        subtitleStyle:
+          $ref: '#/components/schemas/SubtitleStyle'
+    ClipSubtitleFields:
+      type: object
+      description: Bagian respons klip; harus digabung dengan field klip lainnya sebelum implementasi endpoint.
+      required: [subtitleStyle]
+      properties:
+        subtitleStyle:
+          $ref: '#/components/schemas/SubtitleStyle'
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+  responses:
+    UploadAccepted:
+      description: Sumber dan job tersimpan pada database; transkripsi/render belum selesai. Memerlukan Origin aplikasi.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message, project]
+            properties:
+              message: { type: string }
+              project:
+                type: object
+                required: [id, status, processingStage]
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { type: string, enum: [processing] }
+                  processingStage: { type: string, enum: [ingest] }
+    BadRequest:
+      description: Request atau JSON tidak valid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthenticated:
+      description: UNAUTHENTICATED
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    OriginNotAllowed:
+      description: ORIGIN_NOT_ALLOWED
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    JsonRequired:
+      description: JSON_REQUIRED
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ProjectNotFound:
+      description: PROJECT_NOT_FOUND, termasuk proyek milik pengguna lain
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    DatabaseUnavailable:
+      description: DATABASE_NOT_CONFIGURED atau DATABASE_UNAVAILABLE
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+x-future-endpoints:
+  description: Draft berikut belum siap sebagai kontrak integrasi final; detail request/response wajib disepakati pemilik.
+  authentication: Cookie HttpOnly dan CRUD proyek tersedia; endpoint pipeline/klip berikutnya wajib memakai middleware sesi, requireAuth, dan memeriksa pemilik di backend.
+  validation: >-
+    Pipeline worker memvalidasi maksimal 20 istilah; transkrip per kata
+    dengan word, start_time, end_time, confidence; hasil kurasi 3–5 klip masing-masing
+    25–75 detik; layout/subtitle hanya nilai yang didukung. Nilai subtitleStyle dibatasi
+    oleh SubtitleStyle; default clean saat pembuatan klip.
+  retention: >-
+    Scheduler cleanup belum diaktifkan. Sumber kedaluwarsa 24 jam setelah upload/upload ulang berhasil;
+    MP4/SRT 24 jam setelah render berhasil. Edit hanya mencatat aktivitas; edit, polling,
+    dan unduhan tidak memperpanjang retensi. Pertahankan metadata/transkrip, kosongkan path
+    setelah pembersihan, tunda media job aktif, dan minta upload ulang jika sumber hilang.
+  clip-contract:
+    status: draft
+    update-fields:
+      $ref: '#/components/schemas/ClipSubtitleUpdate'
+    response-fields:
+      $ref: '#/components/schemas/ClipSubtitleFields'
+  endpoints:
+    - { owner: C, method: GET, path: '/projects/{id}/clips', purpose: Hasil kurasi }
+    - { owner: C, method: PATCH, path: '/clips/{id}', purpose: Simpan edit klip }
+    - { owner: C, method: GET, path: '/clips/{id}/preview', purpose: Preview privat }
+    - { owner: C, method: GET, path: '/clips/{id}/exports/{format}', purpose: Unduh MP4 atau SRT privat }

@@ -1,0 +1,28 @@
+# Isolated infrastructure for queue integration tests; never points at Aiven.
+services:
+  redis-test:
+    image: redis:7.4-alpine
+    ports: ["127.0.0.1:16379:6379"]
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: ["redis-test-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  postgres-test:
+    image: postgres:16-alpine
+    ports: ["127.0.0.1:15432:5432"]
+    environment:
+      POSTGRES_USER: cuplik_test
+      POSTGRES_PASSWORD: local_test_only
+      POSTGRES_DB: cuplik_queue_test
+    volumes: ["postgres-test-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cuplik_test -d cuplik_queue_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+volumes:
+  redis-test-data:
+  postgres-test-data:

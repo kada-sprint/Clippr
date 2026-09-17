@@ -1,0 +1,34 @@
+const path = require('node:path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
+
+const mediaRoot = process.env.MEDIA_ROOT || path.resolve(__dirname, '../..');
+
+function resolveMediaPath(relativePath) {
+  return path.resolve(mediaRoot, relativePath);
+}
+
+module.exports = {
+  port: Number(process.env.PORT || 3000),
+  host: process.env.HOST || '127.0.0.1',
+  frontendOrigin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  sessionSecret: process.env.SESSION_SECRET || '',
+  production: process.env.NODE_ENV === 'production',
+  eliceApiKey: process.env.ELICE_API_KEY || process.env.OPENAI_API_KEY || '',
+  eliceApiBaseUrl: process.env.ELICE_API_BASE_URL || process.env.OPENAI_BASE_URL || '',
+  sttModel: process.env.STT_MODEL || 'whisper-large-v3',
+  llmApiKey: process.env.LLM_API_KEY || '',
+  llmApiBaseUrl: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
+  llmModel: process.env.LLM_MODEL || 'gpt-5.6-luna',
+  ffmpegPath: process.env.FFMPEG_PATH || '',
+  ffprobePath: process.env.FFPROBE_PATH || '',
+  redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+  queuePrefix: process.env.QUEUE_PREFIX || 'cuplik-local',
+  r2AccountId: process.env.R2_ACCOUNT_ID || '',
+  r2AccessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+  r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  r2Bucket: process.env.R2_BUCKET || '',
+  r2Endpoint: process.env.R2_ENDPOINT || '',
+  mediaRoot,
+  resolveMediaPath,
+};

@@ -1,0 +1,15 @@
+# Only application inputs enter the build context; never local secrets/media.
+**
+!package.json
+!package-lock.json
+!prisma/
+!prisma/**
+!src/
+!src/**
+!scripts/
+!scripts/**
+!server.js
+!worker.js
+!production.js
+!Dockerfile
+!.dockerignore

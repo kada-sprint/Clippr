@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cuplik.app/schemas/transcript_input.schema.json",
+  "title": "Transcript Input",
+  "description": "Word-level transcript produced by the ASR pipeline. ASSUMED, PENDING CONFIRMATION with Orang B.",
+  "type": "object",
+  "required": ["words"],
+  "additionalProperties": false,
+  "properties": {
+    "words": {
+      "type": "array",
+      "description": "Ordered sequence of word objects with word-level timestamps.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["word", "start", "end"],
+        "additionalProperties": false,
+        "properties": {
+          "word": {
+            "type": "string",
+            "description": "The transcribed word token.",
+            "minLength": 1
+          },
+          "start": {
+            "type": "number",
+            "description": "Start time of the word in seconds (float).",
+            "minimum": 0
+          },
+          "end": {
+            "type": "number",
+            "description": "End time of the word in seconds (float).",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,940 @@
+{
+  "words": [
+    {
+      "word": "Oke",
+      "start_time": 0.0,
+      "end_time": 0.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "kita",
+      "start_time": 0.32,
+      "end_time": 0.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "istirahat",
+      "start_time": 0.52,
+      "end_time": 1.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "dulu",
+      "start_time": 1.04,
+      "end_time": 1.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "ya",
+      "start_time": 1.28,
+      "end_time": 1.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "sebentar",
+      "start_time": 1.44,
+      "end_time": 1.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "saya",
+      "start_time": 2.2,
+      "end_time": 2.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "mau",
+      "start_time": 2.44,
+      "end_time": 2.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "ke",
+      "start_time": 2.64,
+      "end_time": 2.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "kitchen",
+      "start_time": 2.8,
+      "end_time": 3.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "dulu",
+      "start_time": 3.28,
+      "end_time": 3.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "sih",
+      "start_time": 3.48,
+      "end_time": 3.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "tadi",
+      "start_time": 4.2,
+      "end_time": 4.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "pagi",
+      "start_time": 4.44,
+      "end_time": 4.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "saya",
+      "start_time": 4.72,
+      "end_time": 4.92,
+      "confidence": 0.95
+    },
+    {
+      "word": "lupa",
+      "start_time": 4.92,
+      "end_time": 5.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "bawa",
+      "start_time": 5.24,
+      "end_time": 5.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "bekal",
+      "start_time": 5.52,
+      "end_time": 5.92,
+      "confidence": 0.95
+    },
+    {
+      "word": "sih",
+      "start_time": 5.92,
+      "end_time": 6.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "Hari",
+      "start_time": 6.6,
+      "end_time": 6.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "ini",
+      "start_time": 6.88,
+      "end_time": 7.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "panas",
+      "start_time": 7.08,
+      "end_time": 7.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "banget",
+      "start_time": 7.44,
+      "end_time": 7.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "ya",
+      "start_time": 7.8,
+      "end_time": 7.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "Kamu",
+      "start_time": 8.2,
+      "end_time": 8.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "sudah",
+      "start_time": 8.48,
+      "end_time": 8.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "makan",
+      "start_time": 8.76,
+      "end_time": 9.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "belum",
+      "start_time": 9.12,
+      "end_time": 9.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "tadi",
+      "start_time": 9.8,
+      "end_time": 10.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "saya",
+      "start_time": 10.04,
+      "end_time": 10.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "lihat",
+      "start_time": 10.24,
+      "end_time": 10.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "ada",
+      "start_time": 10.52,
+      "end_time": 10.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "warung",
+      "start_time": 10.72,
+      "end_time": 11.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "buka",
+      "start_time": 11.16,
+      "end_time": 11.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "dekat",
+      "start_time": 11.48,
+      "end_time": 11.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "sini",
+      "start_time": 11.76,
+      "end_time": 12.0,
+      "confidence": 0.95
+    },
+    {
+      "word": "Nasi",
+      "start_time": 12.4,
+      "end_time": 12.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "gorengnya",
+      "start_time": 12.72,
+      "end_time": 13.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "enak",
+      "start_time": 13.2,
+      "end_time": 13.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "loh",
+      "start_time": 13.52,
+      "end_time": 13.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "Oke",
+      "start_time": 14.2,
+      "end_time": 14.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "nanti",
+      "start_time": 14.52,
+      "end_time": 14.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "kita",
+      "start_time": 14.8,
+      "end_time": 15.0,
+      "confidence": 0.95
+    },
+    {
+      "word": "lanjut",
+      "start_time": 15.0,
+      "end_time": 15.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "lagi",
+      "start_time": 15.32,
+      "end_time": 15.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "ya",
+      "start_time": 15.52,
+      "end_time": 15.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "setelah",
+      "start_time": 15.68,
+      "end_time": 16.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "istirahat",
+      "start_time": 16.04,
+      "end_time": 16.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "Jangan",
+      "start_time": 17.0,
+      "end_time": 17.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "lupa",
+      "start_time": 17.36,
+      "end_time": 17.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "minum",
+      "start_time": 17.64,
+      "end_time": 17.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "air",
+      "start_time": 17.96,
+      "end_time": 18.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "putih",
+      "start_time": 18.16,
+      "end_time": 18.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "ya",
+      "start_time": 18.52,
+      "end_time": 18.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "Cuaca",
+      "start_time": 19.2,
+      "end_time": 19.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "kayak",
+      "start_time": 19.64,
+      "end_time": 19.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "gini",
+      "start_time": 19.88,
+      "end_time": 20.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "gampang",
+      "start_time": 20.08,
+      "end_time": 20.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "dehidrasi",
+      "start_time": 20.44,
+      "end_time": 21.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "Kemarin",
+      "start_time": 21.6,
+      "end_time": 22.0,
+      "confidence": 0.95
+    },
+    {
+      "word": "saya",
+      "start_time": 22.0,
+      "end_time": 22.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "hampir",
+      "start_time": 22.2,
+      "end_time": 22.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "pingsan",
+      "start_time": 22.52,
+      "end_time": 23.0,
+      "confidence": 0.95
+    },
+    {
+      "word": "di",
+      "start_time": 23.0,
+      "end_time": 23.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "kantor",
+      "start_time": 23.16,
+      "end_time": 23.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "karena",
+      "start_time": 23.56,
+      "end_time": 23.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "kurang",
+      "start_time": 23.88,
+      "end_time": 24.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "minum",
+      "start_time": 24.2,
+      "end_time": 24.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "Untung",
+      "start_time": 25.0,
+      "end_time": 25.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "cuma",
+      "start_time": 25.4,
+      "end_time": 25.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "pusing",
+      "start_time": 25.68,
+      "end_time": 26.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "aja",
+      "start_time": 26.08,
+      "end_time": 26.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "Oke",
+      "start_time": 27.0,
+      "end_time": 27.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "berapa",
+      "start_time": 27.32,
+      "end_time": 27.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "menit",
+      "start_time": 27.64,
+      "end_time": 27.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "lagi",
+      "start_time": 27.96,
+      "end_time": 28.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "nisih",
+      "start_time": 28.16,
+      "end_time": 28.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "kita",
+      "start_time": 28.52,
+      "end_time": 28.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "mulai",
+      "start_time": 28.72,
+      "end_time": 29.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "lagi",
+      "start_time": 29.04,
+      "end_time": 29.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "Saya",
+      "start_time": 29.8,
+      "end_time": 30.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "kasih",
+      "start_time": 30.08,
+      "end_time": 30.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "waktu",
+      "start_time": 30.36,
+      "end_time": 30.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "lima",
+      "start_time": 30.68,
+      "end_time": 30.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "menit",
+      "start_time": 30.96,
+      "end_time": 31.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "aja",
+      "start_time": 31.28,
+      "end_time": 31.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "yah",
+      "start_time": 31.48,
+      "end_time": 31.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "Siapa",
+      "start_time": 32.2,
+      "end_time": 32.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "yang",
+      "start_time": 32.52,
+      "end_time": 32.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "mau",
+      "start_time": 32.68,
+      "end_time": 32.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "jajan",
+      "start_time": 32.88,
+      "end_time": 33.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "sama",
+      "start_time": 33.32,
+      "end_time": 33.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "saya",
+      "start_time": 33.56,
+      "end_time": 33.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "ke",
+      "start_time": 33.8,
+      "end_time": 33.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "minimarket",
+      "start_time": 33.96,
+      "end_time": 34.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "saya",
+      "start_time": 35.2,
+      "end_time": 35.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "mau",
+      "start_time": 35.44,
+      "end_time": 35.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "beli",
+      "start_time": 35.64,
+      "end_time": 35.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "kopi",
+      "start_time": 35.88,
+      "end_time": 36.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "susah",
+      "start_time": 36.24,
+      "end_time": 36.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "banget",
+      "start_time": 36.64,
+      "end_time": 36.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "hari",
+      "start_time": 36.96,
+      "end_time": 37.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "ini",
+      "start_time": 37.2,
+      "end_time": 37.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "Teman",
+      "start_time": 38.0,
+      "end_time": 38.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "saya",
+      "start_time": 38.4,
+      "end_time": 38.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "di",
+      "start_time": 38.6,
+      "end_time": 38.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "sebelah",
+      "start_time": 38.76,
+      "end_time": 39.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "katanya",
+      "start_time": 39.12,
+      "end_time": 39.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "sudah",
+      "start_time": 39.56,
+      "end_time": 39.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "botakin",
+      "start_time": 39.84,
+      "end_time": 40.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "kepala",
+      "start_time": 40.28,
+      "end_time": 40.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "gara-gara",
+      "start_time": 40.64,
+      "end_time": 41.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "banyak",
+      "start_time": 41.12,
+      "end_time": 41.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "begadang",
+      "start_time": 41.4,
+      "end_time": 41.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "Kasihan",
+      "start_time": 42.4,
+      "end_time": 42.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "ya",
+      "start_time": 42.88,
+      "end_time": 43.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "Tapi",
+      "start_time": 43.04,
+      "end_time": 43.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "lucu",
+      "start_time": 43.28,
+      "end_time": 43.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "juga",
+      "start_time": 43.6,
+      "end_time": 43.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "sih",
+      "start_time": 43.8,
+      "end_time": 44.0,
+      "confidence": 0.95
+    },
+    {
+      "word": "Kalau",
+      "start_time": 44.6,
+      "end_time": 44.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "dilihat",
+      "start_time": 44.88,
+      "end_time": 45.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "dari",
+      "start_time": 45.24,
+      "end_time": 45.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "kejauhan",
+      "start_time": 45.44,
+      "end_time": 46.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "kayak",
+      "start_time": 46.04,
+      "end_time": 46.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "profesor",
+      "start_time": 46.28,
+      "end_time": 46.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "gitu",
+      "start_time": 46.88,
+      "end_time": 47.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "Oke",
+      "start_time": 47.8,
+      "end_time": 48.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "sepertinya",
+      "start_time": 48.12,
+      "end_time": 48.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "sudah",
+      "start_time": 48.6,
+      "end_time": 48.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "cukup",
+      "start_time": 48.88,
+      "end_time": 49.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "waktunya",
+      "start_time": 49.2,
+      "end_time": 49.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "Ayo",
+      "start_time": 50.2,
+      "end_time": 50.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "kita",
+      "start_time": 50.52,
+      "end_time": 50.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "mulai",
+      "start_time": 50.72,
+      "end_time": 51.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "lagi",
+      "start_time": 51.04,
+      "end_time": 51.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "Siapa",
+      "start_time": 51.6,
+      "end_time": 51.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "yang",
+      "start_time": 51.88,
+      "end_time": 52.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "sudah",
+      "start_time": 52.04,
+      "end_time": 52.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "siap",
+      "start_time": 52.28,
+      "end_time": 52.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "ayo",
+      "start_time": 52.6,
+      "end_time": 52.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "angkat",
+      "start_time": 52.84,
+      "end_time": 53.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "tangan",
+      "start_time": 53.2,
+      "end_time": 53.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "Terima",
+      "start_time": 54.2,
+      "end_time": 54.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "kasih",
+      "start_time": 54.52,
+      "end_time": 54.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "sudah",
+      "start_time": 54.84,
+      "end_time": 55.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "balik",
+      "start_time": 55.12,
+      "end_time": 55.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "semuanya",
+      "start_time": 55.48,
+      "end_time": 55.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "Kita",
+      "start_time": 56.6,
+      "end_time": 56.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "lanjut",
+      "start_time": 56.84,
+      "end_time": 57.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "ke",
+      "start_time": 57.16,
+      "end_time": 57.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "materi",
+      "start_time": 57.32,
+      "end_time": 57.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "berikutnya",
+      "start_time": 57.72,
+      "end_time": 58.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "yah",
+      "start_time": 58.2,
+      "end_time": 58.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "Terima",
+      "start_time": 59.0,
+      "end_time": 59.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "kasih",
+      "start_time": 59.32,
+      "end_time": 59.64,
+      "confidence": 0.95
+    }
+  ]
+}

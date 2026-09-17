@@ -1,0 +1,1168 @@
+{
+  "words": [
+    {
+      "word": "Halo",
+      "start_time": 0,
+      "end_time": 0.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "semuanya",
+      "start_time": 0.32,
+      "end_time": 0.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "selamat",
+      "start_time": 0.72,
+      "end_time": 1.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "pagi",
+      "start_time": 1.04,
+      "end_time": 1.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "Hari",
+      "start_time": 1.8,
+      "end_time": 2.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "ini",
+      "start_time": 2.04,
+      "end_time": 2.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "kita",
+      "start_time": 2.24,
+      "end_time": 2.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "akan",
+      "start_time": 2.44,
+      "end_time": 2.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "bahas",
+      "start_time": 2.64,
+      "end_time": 2.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "tentang",
+      "start_time": 2.96,
+      "end_time": 3.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "salah",
+      "start_time": 3.28,
+      "end_time": 3.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "satu",
+      "start_time": 3.56,
+      "end_time": 3.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "tantangan",
+      "start_time": 3.76,
+      "end_time": 4.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "terbesar",
+      "start_time": 4.28,
+      "end_time": 4.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "yang",
+      "start_time": 4.72,
+      "end_time": 4.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "dihadapi",
+      "start_time": 4.88,
+      "end_time": 5.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "guru",
+      "start_time": 5.36,
+      "end_time": 5.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "di",
+      "start_time": 5.68,
+      "end_time": 5.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "Indonesia",
+      "start_time": 5.84,
+      "end_time": 6.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "yaitu",
+      "start_time": 6.8,
+      "end_time": 7.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "beban",
+      "start_time": 7.12,
+      "end_time": 7.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "mengajar",
+      "start_time": 7.52,
+      "end_time": 8,
+      "confidence": 0.95
+    },
+    {
+      "word": "yang",
+      "start_time": 8,
+      "end_time": 8.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "sangat",
+      "start_time": 8.16,
+      "end_time": 8.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "berat",
+      "start_time": 8.52,
+      "end_time": 8.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "Banyak",
+      "start_time": 9.4,
+      "end_time": 9.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "guru",
+      "start_time": 9.76,
+      "end_time": 10.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "menghabiskan",
+      "start_time": 10.04,
+      "end_time": 10.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "waktu",
+      "start_time": 10.68,
+      "end_time": 11,
+      "confidence": 0.95
+    },
+    {
+      "word": "lebih",
+      "start_time": 11,
+      "end_time": 11.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "dari",
+      "start_time": 11.28,
+      "end_time": 11.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "tiga",
+      "start_time": 11.48,
+      "end_time": 11.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "jam",
+      "start_time": 11.76,
+      "end_time": 12.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "setiap",
+      "start_time": 12.08,
+      "end_time": 12.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "hari",
+      "start_time": 12.4,
+      "end_time": 12.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "hanya",
+      "start_time": 12.72,
+      "end_time": 13.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "untuk",
+      "start_time": 13.04,
+      "end_time": 13.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "menilai",
+      "start_time": 13.28,
+      "end_time": 13.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "pekerjaan",
+      "start_time": 13.68,
+      "end_time": 14.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "siswa",
+      "start_time": 14.16,
+      "end_time": 14.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "secara",
+      "start_time": 14.52,
+      "end_time": 14.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "manual",
+      "start_time": 14.88,
+      "end_time": 15.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "Bayangkan",
+      "start_time": 15.8,
+      "end_time": 16.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "tiga",
+      "start_time": 16.32,
+      "end_time": 16.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "jam",
+      "start_time": 16.6,
+      "end_time": 16.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "itu",
+      "start_time": 16.88,
+      "end_time": 17.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "bisa",
+      "start_time": 17.08,
+      "end_time": 17.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "habis",
+      "start_time": 17.28,
+      "end_time": 17.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "hanya",
+      "start_time": 17.6,
+      "end_time": 17.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "untuk",
+      "start_time": 17.84,
+      "end_time": 18.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "membaca",
+      "start_time": 18.04,
+      "end_time": 18.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "esai",
+      "start_time": 18.44,
+      "end_time": 18.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "saja",
+      "start_time": 18.76,
+      "end_time": 19.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "Sementara",
+      "start_time": 19.5,
+      "end_time": 19.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "waktu",
+      "start_time": 19.96,
+      "end_time": 20.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "itu",
+      "start_time": 20.24,
+      "end_time": 20.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "seharusnya",
+      "start_time": 20.44,
+      "end_time": 20.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "bisa",
+      "start_time": 20.96,
+      "end_time": 21.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "digunakan",
+      "start_time": 21.16,
+      "end_time": 21.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "untuk",
+      "start_time": 21.64,
+      "end_time": 21.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "aktivitas",
+      "start_time": 21.84,
+      "end_time": 22.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "mengajar",
+      "start_time": 22.32,
+      "end_time": 22.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "yang",
+      "start_time": 22.76,
+      "end_time": 22.92,
+      "confidence": 0.95
+    },
+    {
+      "word": "lebih",
+      "start_time": 22.92,
+      "end_time": 23.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "produktif",
+      "start_time": 23.16,
+      "end_time": 23.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "Nah",
+      "start_time": 24.2,
+      "end_time": 24.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "salah",
+      "start_time": 24.52,
+      "end_time": 24.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "satu",
+      "start_time": 24.8,
+      "end_time": 25,
+      "confidence": 0.95
+    },
+    {
+      "word": "solusi",
+      "start_time": 25,
+      "end_time": 25.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "yang",
+      "start_time": 25.4,
+      "end_time": 25.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "sedang",
+      "start_time": 25.56,
+      "end_time": 25.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "populer",
+      "start_time": 25.88,
+      "end_time": 26.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "adalah",
+      "start_time": 26.36,
+      "end_time": 26.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "menggunakan",
+      "start_time": 26.64,
+      "end_time": 27.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "kecerdasan",
+      "start_time": 27.2,
+      "end_time": 27.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "buatan",
+      "start_time": 27.76,
+      "end_time": 28.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "untuk",
+      "start_time": 28.16,
+      "end_time": 28.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "automated",
+      "start_time": 28.36,
+      "end_time": 28.92,
+      "confidence": 0.95
+    },
+    {
+      "word": "grading",
+      "start_time": 28.92,
+      "end_time": 29.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "Sistem",
+      "start_time": 29.8,
+      "end_time": 30.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "AI",
+      "start_time": 30.16,
+      "end_time": 30.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "bisa",
+      "start_time": 30.48,
+      "end_time": 30.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "menganalisis",
+      "start_time": 30.72,
+      "end_time": 31.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "pekerjaan",
+      "start_time": 31.36,
+      "end_time": 31.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "siswa",
+      "start_time": 31.84,
+      "end_time": 32.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "dan",
+      "start_time": 32.2,
+      "end_time": 32.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "memberikan",
+      "start_time": 32.36,
+      "end_time": 32.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "nilai",
+      "start_time": 32.88,
+      "end_time": 33.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "dalam",
+      "start_time": 33.2,
+      "end_time": 33.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "hitungan",
+      "start_time": 33.44,
+      "end_time": 33.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "detik",
+      "start_time": 33.88,
+      "end_time": 34.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "bukan",
+      "start_time": 34.28,
+      "end_time": 34.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "jam",
+      "start_time": 34.56,
+      "end_time": 34.88,
+      "confidence": 0.95
+    },
+    {
+      "word": "Sebagai",
+      "start_time": 35.4,
+      "end_time": 35.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "contoh",
+      "start_time": 35.76,
+      "end_time": 36.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "platform",
+      "start_time": 36.16,
+      "end_time": 36.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "seperti",
+      "start_time": 36.68,
+      "end_time": 37,
+      "confidence": 0.95
+    },
+    {
+      "word": "Gradescope",
+      "start_time": 37,
+      "end_time": 37.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "menggunakan",
+      "start_time": 37.64,
+      "end_time": 38.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "machine",
+      "start_time": 38.2,
+      "end_time": 38.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "learning",
+      "start_time": 38.6,
+      "end_time": 39.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "untuk",
+      "start_time": 39.04,
+      "end_time": 39.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "mengenali",
+      "start_time": 39.24,
+      "end_time": 39.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "tulisan",
+      "start_time": 39.72,
+      "end_time": 40.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "tangan",
+      "start_time": 40.12,
+      "end_time": 40.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "dan",
+      "start_time": 40.48,
+      "end_time": 40.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "menilai",
+      "start_time": 40.64,
+      "end_time": 41.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "esai",
+      "start_time": 41.04,
+      "end_time": 41.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "secara",
+      "start_time": 41.36,
+      "end_time": 41.68,
+      "confidence": 0.95
+    },
+    {
+      "word": "otomatis",
+      "start_time": 41.68,
+      "end_time": 42.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "Selain",
+      "start_time": 42.8,
+      "end_time": 43.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "itu",
+      "start_time": 43.16,
+      "end_time": 43.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "ada",
+      "start_time": 43.36,
+      "end_time": 43.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "juga",
+      "start_time": 43.6,
+      "end_time": 43.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "fitur",
+      "start_time": 43.84,
+      "end_time": 44.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "personalized",
+      "start_time": 44.16,
+      "end_time": 44.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "feedback",
+      "start_time": 44.8,
+      "end_time": 45.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "Di",
+      "start_time": 45.6,
+      "end_time": 45.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "mana",
+      "start_time": 45.8,
+      "end_time": 46,
+      "confidence": 0.95
+    },
+    {
+      "word": "sistem",
+      "start_time": 46,
+      "end_time": 46.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "bisa",
+      "start_time": 46.28,
+      "end_time": 46.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "memberikan",
+      "start_time": 46.48,
+      "end_time": 46.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "rekomendasi",
+      "start_time": 46.96,
+      "end_time": 47.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "belajar",
+      "start_time": 47.6,
+      "end_time": 48,
+      "confidence": 0.95
+    },
+    {
+      "word": "yang",
+      "start_time": 48,
+      "end_time": 48.16,
+      "confidence": 0.95
+    },
+    {
+      "word": "spesifik",
+      "start_time": 48.16,
+      "end_time": 48.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "untuk",
+      "start_time": 48.64,
+      "end_time": 48.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "setiap",
+      "start_time": 48.84,
+      "end_time": 49.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "siswa",
+      "start_time": 49.12,
+      "end_time": 49.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "berdasarkan",
+      "start_time": 49.48,
+      "end_time": 50,
+      "confidence": 0.95
+    },
+    {
+      "word": "kekuatan",
+      "start_time": 50,
+      "end_time": 50.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "dan",
+      "start_time": 50.44,
+      "end_time": 50.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "kelemahan",
+      "start_time": 50.6,
+      "end_time": 51.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "mereka",
+      "start_time": 51.12,
+      "end_time": 51.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "Dampaknya",
+      "start_time": 52,
+      "end_time": 52.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "sangat",
+      "start_time": 52.56,
+      "end_time": 52.92,
+      "confidence": 0.95
+    },
+    {
+      "word": "signifikan",
+      "start_time": 52.92,
+      "end_time": 53.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "Guru",
+      "start_time": 53.8,
+      "end_time": 54.12,
+      "confidence": 0.95
+    },
+    {
+      "word": "yang",
+      "start_time": 54.12,
+      "end_time": 54.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "tadinya",
+      "start_time": 54.28,
+      "end_time": 54.64,
+      "confidence": 0.95
+    },
+    {
+      "word": "menghabiskan",
+      "start_time": 54.64,
+      "end_time": 55.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "tiga",
+      "start_time": 55.2,
+      "end_time": 55.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "jam",
+      "start_time": 55.48,
+      "end_time": 55.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "untuk",
+      "start_time": 55.76,
+      "end_time": 55.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "menilai",
+      "start_time": 55.96,
+      "end_time": 56.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "sekarang",
+      "start_time": 56.6,
+      "end_time": 56.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "hanya",
+      "start_time": 56.96,
+      "end_time": 57.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "butuh",
+      "start_time": 57.2,
+      "end_time": 57.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "tiga",
+      "start_time": 57.48,
+      "end_time": 57.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "puluh",
+      "start_time": 57.76,
+      "end_time": 58.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "menit",
+      "start_time": 58.04,
+      "end_time": 58.36,
+      "confidence": 0.95
+    },
+    {
+      "word": "untuk",
+      "start_time": 58.36,
+      "end_time": 58.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "review",
+      "start_time": 58.56,
+      "end_time": 58.96,
+      "confidence": 0.95
+    },
+    {
+      "word": "hasil",
+      "start_time": 58.96,
+      "end_time": 59.24,
+      "confidence": 0.95
+    },
+    {
+      "word": "AI",
+      "start_time": 59.24,
+      "end_time": 59.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "Jadi",
+      "start_time": 60.2,
+      "end_time": 60.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "intinya",
+      "start_time": 60.52,
+      "end_time": 60.92,
+      "confidence": 0.95
+    },
+    {
+      "word": "AI",
+      "start_time": 61.2,
+      "end_time": 61.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "bukan",
+      "start_time": 61.52,
+      "end_time": 61.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "menggantikan",
+      "start_time": 61.8,
+      "end_time": 62.4,
+      "confidence": 0.95
+    },
+    {
+      "word": "peran",
+      "start_time": 62.4,
+      "end_time": 62.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "guru",
+      "start_time": 62.72,
+      "end_time": 63.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "tapi",
+      "start_time": 63.04,
+      "end_time": 63.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "membantu",
+      "start_time": 63.28,
+      "end_time": 63.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "guru",
+      "start_time": 63.72,
+      "end_time": 64,
+      "confidence": 0.95
+    },
+    {
+      "word": "menghemat",
+      "start_time": 64,
+      "end_time": 64.44,
+      "confidence": 0.95
+    },
+    {
+      "word": "waktu",
+      "start_time": 64.44,
+      "end_time": 64.76,
+      "confidence": 0.95
+    },
+    {
+      "word": "supaya",
+      "start_time": 64.76,
+      "end_time": 65.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "bisa",
+      "start_time": 65.08,
+      "end_time": 65.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "fokus",
+      "start_time": 65.28,
+      "end_time": 65.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "pada",
+      "start_time": 65.6,
+      "end_time": 65.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "mengajar",
+      "start_time": 65.8,
+      "end_time": 66.2,
+      "confidence": 0.95
+    },
+    {
+      "word": "Secara",
+      "start_time": 66.6,
+      "end_time": 66.92,
+      "confidence": 0.95
+    },
+    {
+      "word": "keseluruhan",
+      "start_time": 66.92,
+      "end_time": 67.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "AI",
+      "start_time": 67.72,
+      "end_time": 68.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "adalah",
+      "start_time": 68.04,
+      "end_time": 68.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "alat",
+      "start_time": 68.28,
+      "end_time": 68.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "yang",
+      "start_time": 68.56,
+      "end_time": 68.72,
+      "confidence": 0.95
+    },
+    {
+      "word": "bisa",
+      "start_time": 68.72,
+      "end_time": 68.92,
+      "confidence": 0.95
+    },
+    {
+      "word": "memperkuat",
+      "start_time": 68.92,
+      "end_time": 69.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "kapasitas",
+      "start_time": 69.48,
+      "end_time": 70.04,
+      "confidence": 0.95
+    },
+    {
+      "word": "guru",
+      "start_time": 70.04,
+      "end_time": 70.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "bukan",
+      "start_time": 70.32,
+      "end_time": 70.56,
+      "confidence": 0.95
+    },
+    {
+      "word": "mengancam",
+      "start_time": 70.56,
+      "end_time": 71.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "posisi",
+      "start_time": 71.08,
+      "end_time": 71.48,
+      "confidence": 0.95
+    },
+    {
+      "word": "mereka",
+      "start_time": 71.48,
+      "end_time": 71.84,
+      "confidence": 0.95
+    },
+    {
+      "word": "Semoga",
+      "start_time": 72.4,
+      "end_time": 72.8,
+      "confidence": 0.95
+    },
+    {
+      "word": "informasi",
+      "start_time": 72.8,
+      "end_time": 73.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "ini",
+      "start_time": 73.32,
+      "end_time": 73.52,
+      "confidence": 0.95
+    },
+    {
+      "word": "bermanfaat",
+      "start_time": 73.52,
+      "end_time": 74.08,
+      "confidence": 0.95
+    },
+    {
+      "word": "bagi",
+      "start_time": 74.08,
+      "end_time": 74.28,
+      "confidence": 0.95
+    },
+    {
+      "word": "semua",
+      "start_time": 74.28,
+      "end_time": 74.6,
+      "confidence": 0.95
+    },
+    {
+      "word": "Terima",
+      "start_time": 75,
+      "end_time": 75.32,
+      "confidence": 0.95
+    },
+    {
+      "word": "kasih",
+      "start_time": 75.32,
+      "end_time": 75.64,
+      "confidence": 0.95
+    }
+  ]
+}
