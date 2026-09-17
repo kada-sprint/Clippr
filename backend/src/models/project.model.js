@@ -22,7 +22,14 @@ const projectSelect = {
 
 async function listByUserId(userId) {
   return getPrisma().project.findMany({
-    where: { userId },
+    where: {
+      userId,
+      OR: [
+        { sourceExpiresAt: null },
+        { sourceExpiresAt: { gt: new Date() } },
+        { sourceVideoPath: null },
+      ],
+    },
     orderBy: { createdAt: 'desc' },
     select: projectSelect,
   });

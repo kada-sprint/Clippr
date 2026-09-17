@@ -440,27 +440,7 @@ export default function EditorPage() {
                   </label>
                 </fieldset>
 
-                {clip.project?.selectedLayout === 'talking-head' && (
-                  <div className="editor-field">
-                    <label htmlFor="clip-horizontal-offset">Posisi Horizontal</label>
-                    <input
-                      id="clip-horizontal-offset"
-                      type="range"
-                      min="-0.4"
-                      max="0.4"
-                      step="0.01"
-                      value={editedHorizontalOffset}
-                      onChange={(e) => setEditedHorizontalOffset(Number(e.target.value))}
-                    />
-                    <small>
-                      {editedHorizontalOffset > 0
-                        ? `${(editedHorizontalOffset * 100).toFixed(0)}% kanan`
-                        : editedHorizontalOffset < 0
-                        ? `${(Math.abs(editedHorizontalOffset) * 100).toFixed(0)}% kiri`
-                        : 'Tengah'}
-                    </small>
-                  </div>
-                )}
+                {/* Temporarily disabled for Template B (talking-head). */}
 
                 {transcriptLoading && (
                   <p className="editor-timing-note">Memuat transkrip…</p>

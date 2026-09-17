@@ -60,6 +60,7 @@ function toSummary(project) {
     hasSource: Boolean(project.sourceVideoPath),
     clipCount: project._count?.clips ?? 0,
     createdAt: project.createdAt,
+    sourceExpiresAt: project.sourceExpiresAt,
   };
 }
 

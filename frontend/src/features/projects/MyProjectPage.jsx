@@ -36,6 +36,22 @@ function statusOf(project) {
   if (project.isBusy) return stages[project.processingStage] || "Render klip";
   return project.clipCount ? "Siap ditinjau" : "Belum ada klip";
 }
+
+function retentionNote(sourceExpiresAt) {
+  if (!sourceExpiresAt) return null;
+  const now = Date.now();
+  const expires = new Date(sourceExpiresAt).getTime();
+  const diffMs = expires - now;
+  if (diffMs <= 0) return "Video sumber menunggu upload ulang";
+  const hours = Math.ceil(diffMs / (1000 * 60 * 60));
+  if (hours <= 1) return "Video sumber akan segera dihapus";
+  return `Video sumber tersisa ${hours} jam`;
+}
+
+function isExpired(project) {
+  if (!project.sourceExpiresAt) return false;
+  return new Date(project.sourceExpiresAt).getTime() <= Date.now();
+}
 export default function MyProjectPage() {
   const { user } = useAuth();
   return <ProjectList key={user.id} />;
@@ -67,12 +83,9 @@ function ProjectList() {
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
-        // A list fetched before a delete must not bring its card back.
         if (startedAt !== revision.current) return;
         setProjects(data.projects);
         setError("");
-        if (data.projects.some((project) => project.isBusy))
-          timer = setTimeout(load, 5000);
       } catch (failure) {
         if (controller.signal.aborted) return;
         if (failure.status === 401) await refreshSession();
@@ -80,6 +93,13 @@ function ProjectList() {
       }
     }
     load();
+    function scheduleNext() {
+      const busy = projects?.some((p) => p.isBusy);
+      timer = setTimeout(() => {
+        load().then(scheduleNext);
+      }, busy ? 5000 : 30000);
+    }
+    scheduleNext();
     return () => {
       controller.abort();
       clearTimeout(timer);
@@ -154,6 +174,10 @@ function ProjectList() {
       <p className="projects-notice" role="status">
         {notice}
       </p>
+      <div className="projects-retention-banner">
+        <Icon name="clock" size={16} />
+        <p>Video sumber dan hasil ekspor dihapus otomatis 24 jam setelah upload atau render. Metadata dan transkrip tetap tersimpan.</p>
+      </div>
       {error && (
         <div className="projects-message" role="alert">
           <p>{error}</p>
@@ -178,7 +202,7 @@ function ProjectList() {
         </div>
       )}
       <div className="projects-grid">
-        {projects?.map((project) => (
+        {projects?.filter((project) => !isExpired(project)).map((project) => (
           <article className="project-card" key={project.id}>
             <div className="project-card-top">
               <span className="project-art">
@@ -197,6 +221,11 @@ function ProjectList() {
                 timeStyle: "short",
               })}
             </p>
+            {retentionNote(project.sourceExpiresAt) && (
+              <p className="project-retention">
+                {retentionNote(project.sourceExpiresAt)}
+              </p>
+            )}
             <dl>
               <div>
                 <dt>Layout</dt>

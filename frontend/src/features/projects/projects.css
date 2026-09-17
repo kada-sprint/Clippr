@@ -31,6 +31,10 @@
 .project-delete-dialog p { font-size: 14px; line-height: 1.8; margin-top: 18px; color: #b4c0d3; }
 .project-delete-dialog .project-delete-error { color: #ffabb4; }
 .project-dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 26px; }
+.project-retention { font-size: 11px; color: #d9b247; margin-top: 6px; }
+.projects-retention-banner { display: flex; align-items: flex-start; gap: 10px; padding: 14px 18px; margin-bottom: 24px; background: #161f30; border: 1px solid #263247; border-radius: 9px; }
+.projects-retention-banner svg { color: #d9b247; flex-shrink: 0; margin-top: 1px; }
+.projects-retention-banner p { font-size: 12px; color: #9baac0; line-height: 1.7; margin: 0; }
 @media (max-width: 1200px) { .projects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 1000px) { .projects-page { padding: 36px 24px; } }
 @media (max-width: 600px) { .projects-page { padding: 26px 16px; } .projects-grid { grid-template-columns: minmax(0, 1fr); } .projects-heading { align-items: flex-start; flex-direction: column; } .project-card { padding: 20px; } }
