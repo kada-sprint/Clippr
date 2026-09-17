@@ -12,12 +12,12 @@
  * @param {object} options - this template ignores all options
  */
 function buildFilterChain(command, options) {
-  // Background: scale to fill 1080×1920 canvas, crop excess, apply heavy blur
-  // Main: scale to fit 1080×1344 (top 70% of canvas), preserve aspect ratio
-  // Overlay: center main vertically on top of blurred background
+  // Split decoded frames once, then process background and main in parallel.
+  // Reading [0:v] twice forces FFmpeg to decode the stream twice; split avoids that.
   const filterGraph = [
-    `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[bg]`,
-    `[0:v]scale=1080:1344:force_original_aspect_ratio=decrease,pad=1080:1344:(ow-iw)/2:(oh-ih)/2:color=black[main]`,
+    `[0:v]split[bg_in][main_in]`,
+    `[bg_in]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[bg]`,
+    `[main_in]scale=1080:1344:force_original_aspect_ratio=decrease,pad=1080:1344:(ow-iw)/2:(oh-ih)/2:color=black[main]`,
     `[bg][main]overlay=(W-w)/2:(H-h)/2`,
   ].join(';');
 

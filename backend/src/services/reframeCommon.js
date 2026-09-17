@@ -129,11 +129,13 @@ async function renderClip(inputPath, startTime, endTime, outputPath, template, o
       })
       .on('error', (err) => {
         clearTimeout(timer);
+        const stderr = stderrChunks.join('');
+        console.error(JSON.stringify({ phase: 'reframe', error: err.message, stderr: stderr.slice(-2000) }));
         resolve({
           success: false,
           outputPath: null,
           duration: 0,
-          error: stderrChunks.join('') || err.message,
+          error: stderr || err.message,
         });
       })
       .on('stderr', (line) => {

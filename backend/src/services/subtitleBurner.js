@@ -258,11 +258,13 @@ async function burnSubtitles(inputPath, words, style = 'clean', outputPath, opti
     proc.on('error', async (err) => {
       clearTimeout(timer);
       await cleanup();
+      const stderr = stderrChunks.join('');
+      console.error(JSON.stringify({ phase: 'subtitle-burn', error: err.message, stderr: stderr.slice(-2000) }));
       resolve({
         success: false,
         outputPath: null,
         duration: 0,
-        error: stderrChunks.join('') || err.message,
+        error: stderr || err.message,
       });
     });
 

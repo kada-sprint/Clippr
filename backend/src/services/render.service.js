@@ -19,12 +19,14 @@ async function renderMedia(project, clip, attemptToken) {
       duration < 25 || duration > 75 || !clip.transcriptJson?.words?.length) {
     throw new AppError(422, 'INVALID_RENDER_INPUT', 'Layout, durasi, atau subtitle klip tidak valid.');
   }
-  const timeoutMs = Math.max(120000, duration * 2000);
+  const timeoutMs = layout === 'slide-only'
+    ? Math.max(180_000, duration * 3_000)
+    : Math.max(120_000, duration * 2_000);
   const framed = await renderClip(env.resolveMediaPath(project.sourceVideoPath), Number(clip.startTime), Number(clip.endTime), vertical, layout,
     { horizontalOffset: clip.horizontalOffset ?? 0, timeoutMs });
-  if (!framed.success) throw new AppError(framed.error === 'timeout' ? 504 : 500, 'RENDER_FAILED', 'Render video gagal.');
+  if (!framed.success) throw new AppError(framed.error === 'timeout' ? 504 : 500, 'RENDER_FAILED', `Render video gagal: ${framed.error?.slice(0, 200) || 'unknown'}`);
   const burned = await burnSubtitles(vertical, clip.transcriptJson.words, clip.subtitleStyle, subtitled, { timeoutMs });
-  if (!burned.success) throw new AppError(burned.error === 'timeout' ? 504 : 500, 'SUBTITLE_RENDER_FAILED', 'Render subtitle gagal.');
+  if (!burned.success) throw new AppError(burned.error === 'timeout' ? 504 : 500, 'SUBTITLE_RENDER_FAILED', `Render subtitle gagal: ${burned.error?.slice(0, 200) || 'unknown'}`);
   const generated = generateSrt(clip.transcriptJson, srt);
   if (!generated.success) throw new AppError(500, 'SRT_GENERATION_FAILED', 'Ekspor subtitle gagal.');
   const now = new Date();
