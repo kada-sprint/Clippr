@@ -117,6 +117,9 @@ function createPipelineService({ repository = jobs, extract = extractAudio, tran
         result = persisted;
       }
       await guard((transaction) => transaction.clip.update({ where: { id: clip.id }, data: result }));
+      if (!storedInR2 && result.clipVideoPath) {
+        await files.unlink(result.clipVideoPath).catch(() => {});
+      }
     }
     await guard(async (transaction) => {
       await transaction.processingJob.update({ where: { id: job.id }, data: { status: 'completed', attemptToken: null, errorCode: null } });

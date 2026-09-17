@@ -287,6 +287,7 @@ async function burnSubtitles(inputPath, words, style = 'clean', outputPath, opti
       });
     }, timeoutMs);
 
+    proc.outputOptions(['-preset', 'fast', '-threads', '2']);
     proc.run();
   });
 }

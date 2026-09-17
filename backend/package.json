@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node --watch-path=src server.js",
     "start": "node server.js",
-    "start:production": "node production.js",
+    "start:production": "node --max-old-space-size=384 production.js",
     "worker": "node worker.js",
     "worker:dev": "node --watch-path=src worker.js",
     "job:retry": "node scripts/retry-job.js",

@@ -15,4 +15,4 @@ ENV MEDIA_ROOT=/app/backend
 RUN mkdir -p uploads/videos uploads/audios certs && chown -R node:node uploads certs
 USER node
 EXPOSE 3000
-CMD ["node", "production.js"]
+CMD ["node", "--max-old-space-size=384", "production.js"]

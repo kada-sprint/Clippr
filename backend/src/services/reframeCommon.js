@@ -153,6 +153,7 @@ async function renderClip(inputPath, startTime, endTime, outputPath, template, o
       });
     }, timeoutMs);
 
+    proc.outputOptions(['-preset', 'fast', '-threads', '2']);
     proc.run();
   });
 }
