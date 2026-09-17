@@ -10,17 +10,13 @@
  */
 function buildFilterChain(command, options) {
   const horizontalOffset = options.horizontalOffset ?? 0;
+  const subtitleSuffix = options.subtitleFilter ? `,${options.subtitleFilter}` : '';
 
   // Crop a vertical strip with 9:16 aspect ratio, centered on horizontalOffset.
-  // crop_height = full source height (ih)
-  // crop_width  = ih * (9/16) = ih * 0.5625
-  // crop_x      = center of source + offset, clamped to valid range
-  //
-  // Scale to fill 1080×1920 (force_original_aspect_ratio=decrease won't help here
-  // since we already cropped to 9:16 — just scale to exact target).
-  const filterGraph = `[0:v]crop=ih*0.5625:ih:(iw/2+iw*${horizontalOffset})-(ih*0.5625/2):0,scale=1080:1920:flags=lanczos`;
+  // Scale to fill 1080×1920 using lanczos for quality downscale.
+  const filterGraph = `[0:v]crop=ih*0.5625:ih:(iw/2+iw*${horizontalOffset})-(ih*0.5625/2):0,scale=1080:1920:flags=lanczos${subtitleSuffix}`;
 
-  command.videoFilters(filterGraph);
+  command.complexFilter(filterGraph);
 }
 
 module.exports = { buildFilterChain };
