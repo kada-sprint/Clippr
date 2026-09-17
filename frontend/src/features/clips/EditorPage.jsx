@@ -57,10 +57,11 @@ export default function EditorPage() {
   }, [clips, selectedId]);
 
   const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const cacheKey = clip?.renderedAt ?? '';
   const videoSrc = clip?.subtitledVideoPath
-    ? `${API_BASE}/api/media/${validProjectId}/${clip.id}/subtitled.mp4`
+    ? `${API_BASE}/api/media/${validProjectId}/${clip.id}/subtitled.mp4?t=${cacheKey}`
     : clip?.clipVideoPath
-    ? `${API_BASE}/api/media/${validProjectId}/${clip.id}/vertical.mp4`
+    ? `${API_BASE}/api/media/${validProjectId}/${clip.id}/vertical.mp4?t=${cacheKey}`
     : null;
 
   const originalValues = useMemo(() => {
@@ -186,6 +187,8 @@ export default function EditorPage() {
         horizontalOffset: editedHorizontalOffset,
         transcriptJson: words ? { words } : undefined,
       });
+      const updated = await fetchTranscript(clip.id);
+      if (updated) setTranscript(updated.transcriptJson);
       setEditedWords({});
       setSaveMessage('Tersimpan');
       setTimeout(() => setSaveMessage(null), 2000);

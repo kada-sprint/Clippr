@@ -80,7 +80,7 @@ function createPipelineService({ repository = jobs, extract = extractAudio, tran
     }
     await guard(async (transaction) => {
       await transaction.processingJob.update({ where: { id: job.id }, data: { status: 'completed', attemptToken: null, errorCode: null } });
-      if (job.kind === 'pipeline') await transaction.project.update({ where: { id: project.id }, data: { status: 'idle', processingStage: null } });
+      await transaction.project.update({ where: { id: project.id }, data: { status: 'idle', processingStage: null } });
     });
   };
 }

@@ -86,11 +86,12 @@ test('resume after curation skips ASR/LLM and already rendered clips', async () 
 });
 
 test('rerender reads only the requested clip and does not change project completion', async () => {
+  let projectUpdateCalled = false;
   const job = { id: 'job', kind: 'render-clip', clipId: 'clip', clip: { projectId },
     project: { id: projectId, sourceVideoPath: 'source.mp4' }, attemptToken: 'token' };
   const process = createPipelineService({
     repository: { guarded: async (id, token, action) => action({
-      project: { update: async () => assert.fail('rerender must not reset project') },
+      project: { update: async () => { projectUpdateCalled = true; } },
       processingJob: { update: async () => ({}) },
       clip: {
         findMany: async ({ where }) => { assert.deepEqual(where, { id: 'clip', projectId }); return [{ id: 'clip', status: 'rendering' }]; },
@@ -102,6 +103,7 @@ test('rerender reads only the requested clip and does not change project complet
     transcribe: async () => assert.fail('no ASR'), curate: async () => assert.fail('no curation'),
   });
   await process(job);
+  assert.ok(projectUpdateCalled, 'project status must be reset to idle after render-clip');
   await assert.rejects(process({ ...job, clip: { projectId: 'another-project' } }), { code: 'CLIP_NOT_FOUND' });
 });
 

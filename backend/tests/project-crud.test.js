@@ -194,6 +194,7 @@ test('project lists are isolated by session owner and never expose media paths',
     hasSource: false,
     clipCount: 0,
     createdAt: '2026-09-09T10:00:00.000Z',
+    sourceExpiresAt: null,
   }]);
 
   const otherResponse = await fetch(`${baseUrl}/projects`, { headers: { Cookie: otherCookie } });
